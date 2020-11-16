@@ -1,17 +1,15 @@
-import game from './game.js'
+import game from './main.js'
 
 export default {
   name: 'gameIndex',
   components: {
     
   },
-  data () {
-    return {
-      
-    }
+  setup () {
+    
   },
   mounted () {
     this.gameCanvas = this.$el.querySelector('#gameCanvas')
-    game.start(this.gameCanvas)
+    game(this.gameCanvas, this)
   },
 }
