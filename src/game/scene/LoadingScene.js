@@ -11,7 +11,7 @@ export default class LoadingScene extends Scene {
   
   onCreate () {
     const text = new Text('assasasa', { fill: '#ffffff' })
-    this._container.addChild(text)
+    this.addChild(text)
     console.log(text, Game.stage)
   }
   
@@ -25,14 +25,18 @@ export default class LoadingScene extends Scene {
   
   startGame () {
     setTimeout(() => {
-      Scene.load('GameScene').then((scene) => {
-        console.log(scene)
-        scene.open()
+      this.replace('GameScene', {}, {
+        name: 'fadeOut'
+      }, {
+        name: 'fadeIn'
+      })
+      .then((res) => {
+        this.release()
       })
       .catch((e) => {
         console.log(e)
-      })      
-    }, 3000)
+      }) 
+    }, 1000)
 
   }
 }

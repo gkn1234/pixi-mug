@@ -27,10 +27,16 @@ export default {
     keyMoveTime: 2500,
     // 落键速度(可以设置1/2/3/4速)
     keySpeed: 4,
-    // 按键宽度取决于轨道
-    // 按键高度设置(以按键到达屏幕底部的大小为准)
-    keyHeight: {
-      tapKey: 15
+    
+    // 按键详细设置
+    keySetting: {
+      // 单点按键
+      tapKey: {
+        // 高度设置(以到达屏幕底部的宽度为准)
+        height: 15,
+        // 纹理资源
+        res: '/img/tap.png'
+      }
     }
   },
   

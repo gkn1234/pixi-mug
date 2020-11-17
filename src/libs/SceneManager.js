@@ -1,4 +1,4 @@
-import utils from '@/utils/index.js'
+import utils from './utils/index.js'
 
 export default class SceneManager {
   // 传入一个数组，记录场景数据
@@ -14,15 +14,7 @@ export default class SceneManager {
     this.scenesData = data
     // 储存场景对象的数据结构
     this.scenesMap = {}
-  }
-  
-  /*
-    场景替换，关闭当前场景，打开
-  */
-  replace () {
-    
-  }
-  
+  }  
   
   /*
     加载场景
@@ -38,9 +30,17 @@ export default class SceneManager {
     const sceneObj = this._resolveScene(scene, params = {})
     if (!sceneObj._isLoaded) {
       sceneObj.onLoad(params)
-      sceneObj._isLoaded = true
+      sceneObj._isSceneLoaded = true
     }
     return sceneObj
+  }
+  
+  // 销毁场景
+  release (sceneName) {
+    if (!this.scenesMap[sceneName]) {
+      return
+    }
+    this.scenesMap[sceneName] = null
   }
   
   // 获取场景对象
@@ -70,7 +70,9 @@ export default class SceneManager {
       if (!InitFunc || typeof InitFunc !== 'function' || !InitFunc.prototype) {
         throw new Error('Invalid scene data!')
       }
+      // 构建场景并且指定名称
       this.scenesMap[sceneData.name] = new InitFunc()
+      this.scenesMap[sceneData.name].name = sceneData.name
       // 新创建的场景要经过初始化
       this.scenesMap[sceneData.name].onCreate(params)
     }

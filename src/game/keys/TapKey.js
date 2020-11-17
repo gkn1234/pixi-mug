@@ -2,7 +2,7 @@ import { Sprite, Container } from 'pixi.js'
 
 import Game from '@/libs/Game.js'
 
-import utils from '@/utils/index.js'
+import utils from '@/libs/utils/index.js'
 
 export default class TapKey extends Sprite {
   /*

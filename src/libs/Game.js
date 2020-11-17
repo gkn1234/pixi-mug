@@ -2,7 +2,7 @@ import { Application, Loader } from 'pixi.js'
 
 import SceneManager from './SceneManager.js'
 
-import utils from '@/utils/index.js'
+import utils from './utils/index.js'
 
 const Game = {
   // 启动游戏
