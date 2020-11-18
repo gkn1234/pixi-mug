@@ -96,6 +96,8 @@ export default class Scene extends Container {
   async open (animateOptions) {
     // 场景加入舞台
     Game.stage.addChild(this)
+    // 打开瞬间声明周期
+    this.onOpen()
     // 播放打开动画
     await this.sceneAnimate(animateOptions)
     // 打开完成后，执行对应的生命周期函数
@@ -165,8 +167,11 @@ export default class Scene extends Container {
   // 场景加载时的回调函数
   onLoad (params) {}
   
+  // 场景打开瞬间的回调函数
+  onOpen () {}
+  
   // 当场景展现时的回调函数
-  onShow (params) {}
+  onShow () {}
   
   // 当场景关闭后的回调函数
   onClose () {}

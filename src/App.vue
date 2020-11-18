@@ -3,7 +3,8 @@
 </template>
 
 <script>
-import gameIndex from './game/gameIndex.vue'
+  
+import gameIndex from '@/game/gameIndex.vue'
 
 export default {
   name: 'App',
@@ -11,11 +12,13 @@ export default {
     gameIndex
   }
 }
+
 </script>
 
 <style>
 
-body {
+html, body, #app {
+  height: 100%;
   margin: 0
 }
 

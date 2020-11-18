@@ -29,7 +29,6 @@ const Game = {
     // 初始化资源加载器
     Game.loader = new Loader()
     
-    Game.enabled = true
     
     if (Game.scenes) {
       // 未指定初始场景，则打开配置的第一个场景
@@ -80,6 +79,7 @@ const Game = {
 
 // 最好不要乱搞Game对象
 const GameProxy = new Proxy(Game, {
+  /*
   get (target, key) {
     if (!Game.enabled) {
       if (typeof target[key] === 'function') {
@@ -89,6 +89,7 @@ const GameProxy = new Proxy(Game, {
     }
     return target[key]
   },
+  */
   set (target, key, value) {
     throw new Error('You cant\'t set Game\'s prop without functions!')
   }

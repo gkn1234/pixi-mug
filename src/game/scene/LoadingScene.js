@@ -17,6 +17,7 @@ export default class LoadingScene extends Scene {
   
   onShow () {
     Game.loader
+      .add('bgm', '/bgm/a.mp3')
       .add('/img/tap.png')
       .load(() => {
         this.startGame()

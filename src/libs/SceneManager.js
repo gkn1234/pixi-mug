@@ -28,7 +28,7 @@ export default class SceneManager {
   
   loadSync (scene, params = {}) {
     const sceneObj = this._resolveScene(scene, params = {})
-    if (!sceneObj._isLoaded) {
+    if (!sceneObj._isSceneLoaded) {
       sceneObj.onLoad(params)
       sceneObj._isSceneLoaded = true
     }
