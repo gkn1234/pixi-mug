@@ -7,8 +7,8 @@ export default {
   gameWidth: 667,
   gameHeight: 375,
   // 游戏区域最大宽高，fixedWidth/fixedHeight时有效
-  gameMaxWidth: 1334,
-  gameMaxHeight: 750,
+  gameMaxWidth: 1920,
+  gameMaxHeight: 1080,
   // 游戏整体区域背景
   gameBackground: 'FFFFFF',
   // 移动端屏幕适配模式 fixedWidth/fixedHeight/fullFixed/fullFixedLand/fullFixedPor
@@ -30,8 +30,8 @@ export default {
     // 判定线距离底部的距离 
     judgeLineToBottom: 60,
     // 底部音符区域最大宽度
-    bottomMaxWidth: 600,
-    // 键位Y轴的运动距离
+    bottomMaxWidth: 667,
+    // 键位Y轴的运动距离(运动到底部)
     keyDistanceY: 375,
     // 顶部和底部的比例
     topScaleRatio: 0.15,
@@ -43,22 +43,23 @@ export default {
     keySpeed: 4,
     // 歌曲播放前的空白时间，单位ms，即使不设置，也会强制空出3秒
     timeBeforeStart: 3000,
+    // 按键延迟时间，正数代表按键延后(音乐提前)，负数代表按键提前(音乐延后)
+    keyStartDelay: 0,
     
     // 按键详细设置
     keySetting: {
       // 单点按键
-      tapKey: {
+      Tap: {
         // 高度设置(以到达屏幕底部的宽度为准)
         height: 15,
         // 纹理资源
-        res: '/img/tap.png'
+        res: ['/img/tap.png']
       }
     }
   },
   
   // 资源设置
-  resources: {
-    // tap按键资源
-    tapKey: '/img/tap.png'
-  }
+  resources: [
+    
+  ]
 }

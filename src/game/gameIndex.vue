@@ -1,8 +1,8 @@
 <template>
   <game-wrapper :options="options">
     <canvas id="gameCanvas"></canvas>
+    <game-mask ref="gameMask"></game-mask>
     <play-title ref="playTitle"></play-title>
-    <start-mask ref="startMask"></start-mask>
   </game-wrapper>
 </template>
 
@@ -13,7 +13,7 @@ import { reactive, computed } from 'vue'
 import gameWrapper from '@/libs/ui/gameWrapper.vue'
 
 import playTitle from './ui/playTitle.vue'
-import startMask from './ui/startMask.vue'
+import gameMask from './ui/gameMask.vue'
 
 import config from './config.js'
 import gameStart from './main.js'
@@ -23,7 +23,7 @@ export default {
   components: {
     gameWrapper,
     playTitle,
-    startMask
+    gameMask
   },
   setup () {
     const options = reactive({

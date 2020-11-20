@@ -2,7 +2,17 @@
   <div class="play-title" :style="style" v-show="isShow">
     <div class="play-title-top">
       <span>歌曲标题</span>
-      <div>1000000</div>
+      <div class="play-title-flex">
+        <div class="play-title-icon play-title-flex" @click="pauseHandler">
+          <img src="/icon/icon-pause.png" />
+          <span>暂停</span>
+        </div>
+        <div class="play-title-icon play-title-flex" @click="fullHandler">
+          <img src="/icon/icon-fill-screen.png" />
+          <span>全屏</span>
+        </div>
+        <span>1000000</span>
+      </div>
     </div>
     <div></div>
   </div>
@@ -10,11 +20,13 @@
 
 <script>
 
-import { reactive, ref } from 'vue'
+import { reactive, ref, getCurrentInstance } from 'vue'
 
 export default {
   name: 'playTitle',
   setup () {
+    const { ctx } = getCurrentInstance()
+    
     const isShow = ref(false)
     const show = () => {
       isShow.value = true
@@ -31,10 +43,27 @@ export default {
       height: '60px'
     })
     
+    // 绑定事件函数
+    const setEvent = (key, callback) => {
+      ctx[key] = callback
+    }
+    // 暂停触发
+    const pauseHandler = () => {
+      if (typeof ctx.onPause === 'function') {
+        ctx.onPause()
+      }
+    }
+    // 全屏触发
+    const fullHandler = () => {
+      if (typeof ctx.onFullScreen === 'function') {
+        ctx.onFullScreen()
+      }
+    }
     
     return {
       isShow, show, hide,
-      style
+      style,
+      setEvent, pauseHandler, fullHandler
     }
   }
 }
@@ -45,6 +74,7 @@ export default {
   
 .play-title
   position absolute
+  user-select none
 
 .play-title-top
   height 30px
@@ -55,5 +85,17 @@ export default {
   padding 0 10px
   color #ffffff
   border-bottom 1px solid #ffffff
+
+.play-title-flex
+  display flex
+  align-items center
+
+.play-title-icon
+  margin-right 10px
+  
+  img
+    width 20px
+    height 20px
+    margin-right 3px
 
 </style>
