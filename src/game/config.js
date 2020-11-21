@@ -10,7 +10,7 @@ export default {
   gameMaxWidth: 1920,
   gameMaxHeight: 1080,
   // 游戏整体区域背景
-  gameBackground: 'FFFFFF',
+  gameBackground: '#000000',
   // 移动端屏幕适配模式 fixedWidth/fixedHeight/fullFixed/fullFixedLand/fullFixedPor
   fixedMode: 'fullFixedLand',
   // 屏幕方向 landscape/portrait/auto，暂时不支持
@@ -29,7 +29,13 @@ export default {
   game: {
     // 判定线距离底部的距离 
     judgeLineToBottom: 60,
-    // 底部音符区域最大宽度
+    // 判定区域的宽度
+    judgeWidth: 60,
+    // 判定区间，小P,Good,Bad,Miss，小于第一个数字的是大P，注意这个值其实是+-x，判定区间大小为此值的两倍
+    judgeTime: [15, 30, 60, 100],
+    // 判定得分比例，小P,Good,Bad,Miss，大P为100%
+    judgeScorePercent: [90, 60, 30, 0],
+    // 底部音符区，最大宽度
     bottomMaxWidth: 667,
     // 键位Y轴的运动距离(运动到底部)
     keyDistanceY: 375,

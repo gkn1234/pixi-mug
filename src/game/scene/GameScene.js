@@ -1,4 +1,4 @@
-import { Text, Graphics, Sprite } from 'pixi.js'
+import { Graphics, Sprite } from 'pixi.js'
 
 import Scene from '@/libs/Scene.js'
 import Game from '@/libs/Game.js'
@@ -15,7 +15,6 @@ export default class GameScene extends Scene {
     const config = Game.config
     const gameConfig = Game.config.game
     
-    
     // 画底部判定线
     let judgeLine = new Graphics()
     const judgeLineY = config.height - gameConfig.judgeLineToBottom
@@ -23,6 +22,15 @@ export default class GameScene extends Scene {
     judgeLine.moveTo(0, judgeLineY)
     judgeLine.lineTo(config.width, judgeLineY)
     this.addChild(judgeLine)
+    
+    // 生成判定区域
+    let judgeArea = new Sprite(Game.loader.resources['/img/tap.png'].texture)
+    judgeArea.width = config.width
+    judgeArea.height = gameConfig.judgeWidth
+    judgeArea.y = gameConfig.keyDistanceY - gameConfig.judgeLineToBottom - gameConfig.judgeWidth / 2
+    this.addChild(judgeArea)
+    this.judgeArea = judgeArea
+    
     
     // 画背景图
     
@@ -45,6 +53,7 @@ export default class GameScene extends Scene {
         
       ]
     }
+    // 初始化游戏控制器
     this.controller = new KeyController(this.noteData, this)
     console.log(this.controller)
   }

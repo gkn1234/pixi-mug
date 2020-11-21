@@ -6,6 +6,7 @@ import utils from '@/libs/utils/index.js'
 import Game from '@/libs/Game.js'
 import Pool from '@/libs/Pool.js'
 
+import KeyCatcher from './KeyCatcher.js'
 import Tap from './Tap.js'
 
 // 解析谱面，游戏主控逻辑
@@ -46,6 +47,8 @@ export default class KeyController {
     this._resolveNotes()
     // 创建按键对象池
     this._initNotePool()
+    // 初始化按键判定
+    this._initKeyJudge()
   }
   
   // 读取并解析谱面
@@ -213,6 +216,11 @@ export default class KeyController {
     for (let key in KeyController.NOTE_CONSTRUCTOR) {
       this.notePool[key] = new Pool(KeyController.NOTE_CONSTRUCTOR[key])
     }
+  }
+  
+  // 初始化按键判定
+  _initKeyJudge () {
+    this.keyCatcher = new KeyCatcher(this.scene)
   }
   
   // 设置游戏启动参数
