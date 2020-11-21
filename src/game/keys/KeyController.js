@@ -2,7 +2,6 @@ import Sound from 'pixi-sound'
 import { Sprite } from 'pixi.js'
 
 import utils from '@/libs/utils/index.js'
-
 import Game from '@/libs/Game.js'
 import Pool from '@/libs/Pool.js'
 
@@ -220,7 +219,7 @@ export default class KeyController {
   
   // 初始化按键判定
   _initKeyJudge () {
-    this.keyCatcher = new KeyCatcher(this.scene)
+    this.keyCatcher = new KeyCatcher(this, this.scene)
   }
   
   // 设置游戏启动参数
@@ -250,11 +249,14 @@ export default class KeyController {
     
     // 游戏循环
     Game.ticker.add(this.onUpdate, this)
+    // 启动手势判定
+    this.keyCatcher.start()
   }
   
   // 游戏暂停
   pause () {
     Game.ticker.stop()
+    this.keyCatcher.stop()
     Sound.pause('bgm')
   }
   
@@ -262,6 +264,7 @@ export default class KeyController {
   resume () {
     this.curTimeStamp = Date.now()
     Game.ticker.start()
+    this.keyCatcher.start()
     Sound.resume('bgm')
   }
   
@@ -274,8 +277,11 @@ export default class KeyController {
       child.endDrop()
     })
     
+    // 初始化游戏参数
     this.startSettings()
+    // 启动游戏循环
     Game.ticker.start()
+    this.keyCatcher.start()
   }
   // 游戏结束
   

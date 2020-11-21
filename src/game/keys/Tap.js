@@ -28,6 +28,8 @@ export default class Tap {
     this.options = options
     this._checkInit()
     
+    this.type = this.constructor.name
+    
     const gameConfig = Game.config
     // 初始化精灵对象
     this._initSprite()
