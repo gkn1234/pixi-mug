@@ -1,5 +1,10 @@
 <template>
   <div class="game-wrapper" @resize="fixedScreen">
+    <!--
+    <div style="background-color: white;">
+      <img src="/金色击打效果.png" width="128" height="64" />
+    </div>
+    -->
     <div class="game-wrapper-content" :style="style">
       <slot></slot>
     </div>

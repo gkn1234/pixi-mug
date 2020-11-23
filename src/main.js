@@ -3,6 +3,6 @@ import App from './App.vue'
 
 import VConsole from 'vconsole'
 
-new VConsole()
+// new VConsole()
 
 createApp(App).mount('#app')

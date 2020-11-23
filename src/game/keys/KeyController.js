@@ -41,6 +41,10 @@ export default class KeyController {
     
     // 获取音乐的BPM
     this.bpm = utils.obj.isValidNum(this.data.bpm) && this.data.bpm > 0 ? this.data.bpm : 100
+    // 长按保持时间，我们希望能够做多包容8分音符，所以这里传参为7分音符
+    this.limitTime = this.getNoteDuration(7)
+    // 按键miss时间
+    this.missTime = gameConfig.judgeTime[gameConfig.judgeTime.length - 1]
     
     // 按键的标准下落时间
     const keyMoveTime = gameConfig.keyMoveTime / gameConfig.keySpeed
@@ -229,6 +233,9 @@ export default class KeyController {
   // 初始化按键判定
   _initKeyJudge () {
     this.keyCatcher = new KeyCatcher(this, this.scene)
+    this.keyCatcher.setCallback('onGestureUpdate', (e) => {
+      // console.log('手势状态更新', e.state)
+    })
   }
   
   // 设置游戏启动参数
@@ -327,10 +334,23 @@ export default class KeyController {
     
     this.children.forEach((child) => {
       // 更新按键
-      child.onUpdate(deltaStamp)      
+      child.onUpdate(deltaStamp)
     })
     
+    // 进行一轮按键判定
+    this.keyCatcher.judge(this.children)
+    
     this.curTimeStamp = nowTimeStamp
+  }
+  
+  // 判定成功记录
+  setJudge (level, offset, note) {
+    console.log('判定成功', note.pos, level, offset)
+  }
+  
+  // 判定miss
+  setMiss (note) {
+    console.log('miss')
   }
   
   // 获取X分音符的时间长度

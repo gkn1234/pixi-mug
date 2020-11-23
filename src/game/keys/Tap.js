@@ -29,6 +29,7 @@ export default class Tap {
     this._checkInit()
     
     this.type = this.constructor.name
+    this.time = utils.obj.isValidNum(options.time) ? options.time : 0
     
     const gameConfig = Game.config
     // 初始化精灵对象
@@ -141,12 +142,22 @@ export default class Tap {
     // x关于y的直线方程的截距
     const b = finalCenterX - k * gameConfig.keyDistanceY
     
+    // 计算按键的宽度关于Y方向位置的斜率与截距
+    const kWidth = (finalWidth - initWidth) / gameConfig.keyDistanceY
+    const bWidth = finalWidth - kWidth * gameConfig.keyDistanceY
+    // 计算判定区的横坐标
+    const x = k * sY + b
+    const judgeWidth = kWidth * sY + bWidth
+    const judgeLeftX = x - judgeWidth / 2
+    const judgeRightX = x + judgeWidth / 2
+    
     return {
       key, pos, offset,
       finalWidth, finalHeight,
       initWidth, initHeight,
       initLeftX, finalLeftX,
       initCenterX, finalCenterX,
+      judgeLeftX, judgeRightX,
       sY, k, b
     }
   }
@@ -246,14 +257,73 @@ export default class Tap {
     
     // 落到判定线
     if (this.sprite.y >= this.sY && !this.daoda) {
-      console.log('到达', this.controller.curTime, this.sprite.y, this.sprite.x)
+      console.log('到达', this.controller.curTime, this.sprite.y, this.sprite.x, this.judgeLeftX, this.judgeRightX)
       this.daoda = true
     }
     
-    // 落到底部
-    if (this.sprite.y >= gameConfig.keyDistanceY) {
-      // console.log('到底', this, this.sprite.y, this.sprite.x)
-      this.endDrop()
+    // 是否超出判定时间
+    if (this.controller.curTime - this.time > this.controller.missTime) {
+      // 超出判定时间的同时，位置也在底部以下，则移除按键
+      if (this.sprite.y >= gameConfig.keyDistanceY) {
+        // 到了需要整体移除按键的时候，只能设置为miss
+        this.controller.setMiss(this)
+        this.endDrop()
+      }
     }
+  }
+  
+  // 判断手势位置是否在判定区
+  isGesturePosIn (pos) {
+    const gameConfig = Game.config.game
+    
+    const top = gameConfig.keyDistanceY - gameConfig.judgeLineToBottom - gameConfig.judgeWidth / 2
+    const bottom = top + gameConfig.judgeWidth
+    // console.log(pos.x, pos.y, top, bottom, this.judgeLeftX, this.judgeRightX)
+    if (pos.y < top || pos.y > bottom) {
+      // Y轴判断位置
+      return false
+    }
+    if (pos.x < this.judgeLeftX || pos.x > this.judgeRightX) {
+      return false
+    }
+    return true
+  }
+  
+  // 获取判定等级
+  getJudgeLevel (offset) {
+    const gameConfig = Game.config.game
+    if (offset < 0) {
+      offset = offset * (-1)
+    }
+    const judgeTimeList = gameConfig.judgeTime
+    const len = judgeTimeList.length
+    for (let i = 0; i < len; i++) {
+      const min = i === 0 ? 0 : judgeTimeList[i - 1]
+      const max = judgeTimeList[i]
+      if (offset >= min && offset < max) {
+        return i
+      }
+    }
+    return -1
+  }
+  
+  checkGesture (gesture) {
+    if (gesture.state === 'up' || gesture.state === 'down') {
+      if (this.isGesturePosIn(gesture.pos)) {
+        // 位置判定成功
+        const timeOffset = gesture.time - this.time
+        const level = this.getJudgeLevel(timeOffset)
+        if (level >= 0) {
+          // 判定成功
+          this.controller.setJudge(level, timeOffset, this)
+          // 判定成功时自然要删除按键，避免连续判定
+          this.endDrop()
+        }
+        return level
+      }
+    }
+    // 返回负数代表未判定
+    return -1
+    // console.log(gesture)
   }
 }

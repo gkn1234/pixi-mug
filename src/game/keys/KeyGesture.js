@@ -9,6 +9,8 @@ export default class KeyGesture {
     
     // 计算手势保持的限定时间，限定时间为歌曲BPM下的8分音符长度(为了完全覆盖8分音符，实际上是7分音符的长度)
     this.limitTime = this.catcher.getLimitTime()
+    // 计算miss时间
+    this.missTime = this.catcher.getMissTime()
   }
   
   // 事件状态
@@ -53,6 +55,11 @@ export default class KeyGesture {
       // down状态如果不能成功判定，就没有activeTime属性，也无法转为move或者up
       return
     }
+    if (this.state === KeyGesture.STATE.up) {
+      // 也不可能从up状态退回move状态
+      return
+    }
+    
     if (this._checkMoveActive()) {
       // 更新move事件
       this.state = KeyGesture.STATE.move
@@ -91,40 +98,44 @@ export default class KeyGesture {
   _checkMoveActive () {
     // 当前时间减去activeTime得到超限判断时间
     // 超限判断时间如果超过了限定时间，则move无法保持，长按手势将失效，函数返回false
-    if (this.catcher.getTime() - this.activeTime) {
+    // console.log('检查', this.catcher.getTime(), this.activeTime, this.limitTime)
+    if (this.catcher.getTime() - this.activeTime > this.limitTime) {
       this.catcher.removeGesture(this)
       return false
     }
     return true
   }
   
-  // 进行一次判定
-  judge (note) {
-    // judgeRes返回判定结果数字，-1为没有判定到,0 - 3 分别为 大P/小P/Good/Bad
-    this.judgeRes = note.checkGesture(this)
-    if (this.judgeRes < 0) {
+  // 进行一轮判定后，更新手势状态。isJudge代表是否判定成功
+  judgeUpdate (isJudge = false) {
+    // 获取当前时间
+    const curTime = this.catcher.getTime()
+    if (!isJudge) {
       // 未判定到按键
       if (this.state === KeyGesture.STATE.down || this.state === KeyGesture.STATE.up) {
-        // down状态下没有判定到按键，直接排除出去
-        // up状态本来就是一个手势的末尾，判空后自然也直接排除
-        this.catcher.removeGesture(this)
+        // down和up状态下没有判定到按键
+        const judgeTime = this.state === KeyGesture.STATE.down ? this.startTime : this.endTime
+        if (curTime - judgeTime > this.missTime) {
+          // 一旦当前时间再超过判定miss的时间，代表判定彻底失败就移除
+          this.catcher.removeGesture(this)
+        }
       }
       else {
-        // move状态下则要检查当前时间是否超限。
+        // move状态下则要检查当前时间是否超限。并根据结果自动处理
         this._checkMoveActive()
-      }
+      }      
     }
     else {
       // 判定到了按键
       if (this.state === KeyGesture.STATE.down || this.state === KeyGesture.STATE.move) {
-        // down事件成功判定，赋予activeTime属性
+        // down事件成功判定，赋予activeTime属性，同时使手势可能转为move状态
         // move事件成功判定，更新activeTime属性
         this.activeTime = this.catcher.getTime()
       }
       else {
-        // up事件是事件的末尾，手势结束
+        // up事件是事件的末尾，判定成功后，手势结束
         this.catcher.removeGesture(this)
-      }
+      }      
     }
   }
 }

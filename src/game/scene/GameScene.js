@@ -23,15 +23,6 @@ export default class GameScene extends Scene {
     judgeLine.lineTo(config.width, judgeLineY)
     this.addChild(judgeLine)
     
-    // 生成判定区域
-    let judgeArea = new Sprite(Game.loader.resources['/img/tap.png'].texture)
-    judgeArea.width = config.width
-    judgeArea.height = gameConfig.judgeWidth
-    judgeArea.y = gameConfig.keyDistanceY - gameConfig.judgeLineToBottom - gameConfig.judgeWidth / 2
-    this.addChild(judgeArea)
-    this.judgeArea = judgeArea
-    
-    
     // 画背景图
     
     // 读取谱面

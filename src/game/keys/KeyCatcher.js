@@ -1,3 +1,5 @@
+import { Sprite } from 'pixi.js'
+
 import Game from '@/libs/Game.js'
 import utils from '@/libs/utils/index.js'
 
@@ -27,8 +29,8 @@ export default class KeyCatcher {
   // 移动端按键判定
   _initMobileJudge () {
     const gameConfig = Game.config.game
-    // 生成判定区域
-    let judgeArea = new Sprite(Game.loader.resources['/img/tap.png'].texture)
+    // 生成判定区域 测试纹理 Game.loader.resources['/img/tap.png'].texture
+    let judgeArea = new Sprite()
     judgeArea.width = Game.config.width
     judgeArea.height = gameConfig.judgeWidth
     judgeArea.y = gameConfig.keyDistanceY - gameConfig.judgeLineToBottom - gameConfig.judgeWidth / 2
@@ -37,9 +39,9 @@ export default class KeyCatcher {
     this.judgeArea = judgeArea
     console.log(judgeArea)
     
-    this.judgeArea.on('pointerdown', this._downHandler)
-    this.judgeArea.on('pointermove', this._moveHandler)
-    this.judgeArea.on('pointerup', this._upHandler)
+    this.judgeArea.on('pointerdown', this._downHandler, this)
+    this.judgeArea.on('pointermove', this._moveHandler, this)
+    this.judgeArea.on('pointerup', this._upHandler, this)
   }
   
   // pointerdown回调
@@ -103,9 +105,14 @@ export default class KeyCatcher {
     return this.controller.curTime ? this.controller.curTime : null
   }
   
-  // 获取手势最大持续时间，我们希望能够做多包容8分音符，所以这里传参为7分音符
+  // 获取手势最大持续时间
   getLimitTime () {
-    return this.controller.getNoteDuration(7)
+    return this.controller.limitTime ? this.controller.limitTime : 200
+  }
+  
+  // 获取miss时间
+  getMissTime () {
+    return this.controller.missTime ? this.controller.missTime : 100
   }
   
   // 绑定回调函数
@@ -126,10 +133,21 @@ export default class KeyCatcher {
   }
   
   // 对按键进行判定
-  judge (note) {
+  judge (notes) {
     // 每一个手势对象都对按键进行判定
+    // console.log(this.getTime(), this.gestureMap, notes)
     this.gestureMap.forEach((gesture) => {
-      gesture.judge(note)
+      let isSuccess = false
+      for (let note of notes) {
+        const res = note.checkGesture(gesture)
+        if (res >= 0) {
+          // 判定到一个按键后，就立即退出，避免一个手势判定多个按键
+          isSuccess = true
+          break
+        }
+      }
+      // 根据本轮判定结果，更新本手势的状态
+      gesture.judgeUpdate(isSuccess)
     })
   }
 }
