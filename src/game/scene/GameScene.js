@@ -51,7 +51,8 @@ export default class GameScene extends Scene {
       ],
       speedChanges: [
         
-      ]
+      ],
+      bpm: 150
     }
     // 初始化游戏控制器
     this.controller = new KeyController(this.noteData, this)

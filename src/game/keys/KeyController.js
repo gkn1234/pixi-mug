@@ -25,7 +25,22 @@ export default class KeyController {
   }
   
   _init () {
+    // 初始化基本信息
+    this._initBaseInfo()
+    // 读取并解析谱面
+    this._resolveNotes()
+    // 创建按键对象池
+    this._initNotePool()
+    // 初始化按键判定
+    this._initKeyJudge()
+  }
+  
+  // 初始化基本属性
+  _initBaseInfo () {
     const gameConfig = Game.config.game
+    
+    // 获取音乐的BPM
+    this.bpm = utils.obj.isValidNum(this.data.bpm) && this.data.bpm > 0 ? this.data.bpm : 100
     
     // 按键的标准下落时间
     const keyMoveTime = gameConfig.keyMoveTime / gameConfig.keySpeed
@@ -42,12 +57,6 @@ export default class KeyController {
     // 音乐播放前的空白时间
     this.timeBeforeStart = utils.obj.isValidNum(gameConfig.timeBeforeStart) && gameConfig.timeBeforeStart >= 3000 ? gameConfig.timeBeforeStart : 3000
     
-    // 读取并解析谱面
-    this._resolveNotes()
-    // 创建按键对象池
-    this._initNotePool()
-    // 初始化按键判定
-    this._initKeyJudge()
   }
   
   // 读取并解析谱面
@@ -322,5 +331,13 @@ export default class KeyController {
     })
     
     this.curTimeStamp = nowTimeStamp
+  }
+  
+  // 获取X分音符的时间长度
+  getNoteDuration (divide = 8) {
+    // BPM的意义是一分钟4分音符的数量，先计算出4分音符的长度
+    const baseDuration = 60 * 1000 / this.bpm
+    const ratio = 4 / divide
+    return baseDuration * ratio
   }
 }

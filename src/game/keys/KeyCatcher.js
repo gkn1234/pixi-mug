@@ -12,6 +12,8 @@ export default class KeyCatcher {
     this.scene = scene
     // 手势Map，用事件的id作为key，事件对象为value
     this.gestureMap = new Map()
+    // 回调函数
+    this.eventsCallback = {}
     
     this._init()
   }
@@ -42,35 +44,48 @@ export default class KeyCatcher {
   
   // pointerdown回调
   _downHandler (e) {
-    if (this.pauseSignal || !this.controller.curTime) {
+    if (this.pauseSignal || this.getTime() === null) {
       // 暂停状态下，暂时不处理事件
       return
     }
     
     const curTime = this.controller.curTime
     // down为一个手势的开始，创建一个手势对象
-    let gesture =new KeyGesture(e.data.identifier)
+    let gesture = new KeyGesture(e.data.identifier, this)
     // 手势对象加入down事件
-    gesture.down(curTime, e)
+    gesture.down(e)
     // 加入列表
     this.gestureMap.set(e.data.identifier, gesture)
   }
   
   // pointermove回调
   _moveHandler (e) {
-    if (this.pauseSignal || !this.controller.curTime) {
+    if (this.pauseSignal || this.getTime() === null) {
       // 暂停状态下，暂时不处理事件
       return
     }
-    console.log(e.data.identifier, e.data.global.x, e.data.global.y)
+    
+    const gesture = this.gestureMap.get(e.data.identifier)
+    if (!gesture) {
+      return
+    }
+    
+    gesture.move(e)
   }
   
   // pointerup回调
   _upHandler (e) {
-    if (this.pauseSignal || !this.controller.curTime) {
+    if (this.pauseSignal || this.getTime() === null) {
       // 暂停状态下，暂时不处理事件
       return
     }
+    
+    const gesture = this.gestureMap.get(e.data.identifier)
+    if (!gesture) {
+      return
+    }
+    
+    gesture.up(e)
   }
   
   // 停止手势判定
@@ -83,16 +98,38 @@ export default class KeyCatcher {
     this.pauseSignal = false
   }
   
-  // 创建一个手势对象
-  _createGesture (id) {
-    return {
-      id: id,
-      down: null,
-      up: null,
-      move: null,
-      time: Date.now()
+  // 获取当前游戏时间
+  getTime () {
+    return this.controller.curTime ? this.controller.curTime : null
+  }
+  
+  // 获取手势最大持续时间，我们希望能够做多包容8分音符，所以这里传参为7分音符
+  getLimitTime () {
+    return this.controller.getNoteDuration(7)
+  }
+  
+  // 绑定回调函数
+  setCallback (key, callback) {
+    this.eventsCallback[key] = callback
+  }
+  
+  // 手势状态发生变化时的回调函数
+  onGestrueUpdate (e) {
+    if (typeof this.eventsCallback.onGestureUpdate === 'function') {
+      this.eventsCallback.onGestureUpdate(e)
     }
   }
   
-  // 为手势对象添加
+  // 移除一个手势
+  removeGesture (gesture) {
+    this.gestureMap.delete(gesture.id)
+  }
+  
+  // 对按键进行判定
+  judge (note) {
+    // 每一个手势对象都对按键进行判定
+    this.gestureMap.forEach((gesture) => {
+      gesture.judge(note)
+    })
+  }
 }
