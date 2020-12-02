@@ -63,8 +63,9 @@ export default class KeyGesture {
     if (this._checkMoveActive()) {
       // 更新move事件
       this.state = KeyGesture.STATE.move
+      this.moveTime = this.catcher.getTime()
       this.pos = this._getPos(e)
-      this.time = this.catcher.getTime()
+      this.time = this.moveTime
       this.detail = e
       
       this.catcher.onGestrueUpdate(this)
@@ -137,5 +138,6 @@ export default class KeyGesture {
         this.catcher.removeGesture(this)
       }      
     }
+    this.time = curTime
   }
 }

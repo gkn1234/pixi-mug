@@ -1,5 +1,5 @@
 import Sound from 'pixi-sound'
-import { Sprite } from 'pixi.js'
+import { AnimatedSprite, Sprite } from 'pixi.js'
 
 import utils from '@/libs/utils/index.js'
 import Game from '@/libs/Game.js'
@@ -7,6 +7,7 @@ import Pool from '@/libs/Pool.js'
 
 import KeyCatcher from './KeyCatcher.js'
 import Tap from './Tap.js'
+import Slide from './Slide.js'
 
 // 解析谱面，游戏主控逻辑
 export default class KeyController {
@@ -20,20 +21,73 @@ export default class KeyController {
   }
   
   static NOTE_CONSTRUCTOR = {
+    AnimatedSprite: AnimatedSprite,
     Sprite: Sprite,
-    Tap: Tap
+    Tap: Tap,
+    Slide: Slide
   }
   
   _init () {
-    // 初始化基本信息
-    this._initBaseInfo()
-    // 读取并解析谱面
-    this._resolveNotes()
     // 创建按键对象池
     this._initNotePool()
+    
     // 初始化按键判定
     this._initKeyJudge()
+    
+    // 初始化按键配置、资源等信息
+    this._initKeySettings()
+    
+    // 初始化基本信息
+    this._initBaseInfo()
+    
+    // 读取并解析谱面
+    this._resolveNotes()
   }
+  
+  // 初始化按键对象池
+  _initNotePool () {
+    this.notePool = {}
+    for (let key in KeyController.NOTE_CONSTRUCTOR) {
+      this.notePool[key] = new Pool(KeyController.NOTE_CONSTRUCTOR[key])
+    }
+  }
+  
+  // 初始化按键判定
+  _initKeyJudge () {
+    this.keyCatcher = new KeyCatcher(this, this.scene)
+    this.keyCatcher.setCallback('onGestureUpdate', (e) => {
+      console.log('手势状态更新', e.state)
+    })
+  }
+  
+  // 初始化按键配置、资源等信息
+  _initKeySettings () {
+    const gameConfig = Game.config.game
+    const noteType = this.constructor.name
+    
+    // 有关于纹理方面的配置有问题
+    if (!gameConfig.keySetting || !utils.obj.isArray(gameConfig.judgeAnimationSrc)) {
+      throw new Error('Invalid key settings in config file!')
+    }
+    
+    // 按键大小和纹理获取
+    this.keySetting = {}
+    for (let key in gameConfig.keySetting) {
+      this.keySetting[key] = utils.obj.jsonClone(gameConfig.keySetting[key])
+      if (utils.obj.isArray(this.keySetting[key].res) && this.keySetting[key].res.length > 0) {
+        // 获取按键纹理
+        this.keySetting[key].textures = this.keySetting[key].res.map((texture) => {
+          return this.scene.sheet.textures[texture]
+        })
+      }
+    }
+    
+    // 按键击打特效获取
+    this.keyAnimations = gameConfig.judgeAnimationSrc.map((animation) => {
+      return this.scene.sheet.animations[animation]
+    })
+  }
+  
   
   // 初始化基本属性
   _initBaseInfo () {
@@ -60,7 +114,6 @@ export default class KeyController {
     
     // 音乐播放前的空白时间
     this.timeBeforeStart = utils.obj.isValidNum(gameConfig.timeBeforeStart) && gameConfig.timeBeforeStart >= 3000 ? gameConfig.timeBeforeStart : 3000
-    
   }
   
   // 读取并解析谱面
@@ -222,22 +275,6 @@ export default class KeyController {
     }
   }
   
-  // 初始化按键对象池
-  _initNotePool () {
-    this.notePool = {}
-    for (let key in KeyController.NOTE_CONSTRUCTOR) {
-      this.notePool[key] = new Pool(KeyController.NOTE_CONSTRUCTOR[key])
-    }
-  }
-  
-  // 初始化按键判定
-  _initKeyJudge () {
-    this.keyCatcher = new KeyCatcher(this, this.scene)
-    this.keyCatcher.setCallback('onGestureUpdate', (e) => {
-      // console.log('手势状态更新', e.state)
-    })
-  }
-  
   // 设置游戏启动参数
   startSettings () {
     // 初始化计时器
@@ -256,7 +293,15 @@ export default class KeyController {
     // 游戏是否播放音频
     this._isMusicPlay = false
     // 当前的得分
-    this.score = 0    
+    this.score = 0
+    // 当前的连击数
+    this.combo = 0
+    // 上一次判定的状态
+    this.level = 0
+    // 上一次判定的offset
+    this.offset = 0
+    // 同步到UI
+    this.syncJudgeUI()
   }
   
   // 游戏启动
@@ -346,11 +391,46 @@ export default class KeyController {
   // 判定成功记录
   setJudge (level, offset, note) {
     console.log('判定成功', note.pos, level, offset)
+    this.combo++
+    this.level = level
+    this.offset = offset
+    this.syncJudgeUI()
   }
   
   // 判定miss
   setMiss (note) {
     console.log('miss')
+    this.combo = 0
+    this.level = -1
+    this.syncJudgeUI()
+  }
+  
+  // 同步到判定UI
+  syncJudgeUI () {
+    Game.ui.$refs.judgeShow.judge(this.level, this.combo, this.offset)
+  }
+  
+  // 播放按键击中特效
+  tapAnimate (level, x) {
+    const gameConfig = Game.config.game
+    const animationIndex = level >= 1 ? level - 1 : 0
+    const animation = this.keyAnimations[animationIndex]
+    const animationSprite = this.notePool.AnimatedSprite.get(animationIndex, animation)
+    animationSprite.loop = false
+    animationSprite.animationSpeed = 0.3
+    // 位置
+    animationSprite.anchor.set(0.5, 0.5)
+    animationSprite.x = x
+    animationSprite.y = this.keyDistanceYToJudge
+    // 大小
+    animationSprite.scale.set(2)
+    // 动画播放完成后
+    animationSprite.onComplete = () => {
+      this.scene.removeChild(animationSprite)
+      animationSprite.onComplete = () => {}
+    }
+    this.scene.addChild(animationSprite)
+    animationSprite.play()
   }
   
   // 获取X分音符的时间长度

@@ -15,6 +15,9 @@ export default class GameScene extends Scene {
     const config = Game.config
     const gameConfig = Game.config.game
     
+    // 获取游戏资源
+    this.sheet = Game.loader.resources['/assets.json'].spritesheet
+    console.log(this.sheet)
     // 画底部判定线
     let judgeLine = new Graphics()
     const judgeLineY = config.height - gameConfig.judgeLineToBottom
@@ -29,8 +32,6 @@ export default class GameScene extends Scene {
     this.noteData = {
       notes: [
         { time: 825, type: 'Tap', key: 4, pos: 0, offset: 0 },
-        { time: 825, type: 'Tap', key: 4, pos: 1, offset: 0 },
-        { time: 825, type: 'Tap', key: 4, pos: 2, offset: 0 },
         { time: 825, type: 'Tap', key: 4, pos: 3, offset: 0 },
         { time: 1180, type: 'Tap', key: 4, pos: 1, offset: 0 },
         { time: 1357, type: 'Tap', key: 4, pos: 2, offset: 0 },
@@ -39,6 +40,94 @@ export default class GameScene extends Scene {
         { time: 2422, type: 'Tap', key: 4, pos: 0, offset: 2 },
         { time: 2599, type: 'Tap', key: 4, pos: 1, offset: 1 },
         { time: 2776, type: 'Tap', key: 4, pos: 1, offset: 2 },
+        { time: 3000, type: 'Slide', key: 4, pos: 0, offset: 0 },
+        { time: 3100, type: 'Slide', key: 4, pos: 0, offset: 0 },
+        { time: 3200, type: 'Slide', key: 4, pos: 0, offset: 0 },
+        { time: 3300, type: 'Slide', key: 4, pos: 0, offset: 0 },
+        { time: 3400, type: 'Slide', key: 4, pos: 0, offset: 0 },
+        { time: 3500, type: 'Slide', key: 4, pos: 0, offset: 0 },
+        { time: 3600, type: 'Slide', key: 4, pos: 0, offset: 0 },
+        { time: 3700, type: 'Slide', key: 4, pos: 0, offset: 0 },
+        { time: 3800, type: 'Slide', key: 4, pos: 0, offset: 0 },
+        { time: 3900, type: 'Slide', key: 4, pos: 0, offset: 0 },
+        { time: 4000, type: 'Slide', key: 4, pos: 0, offset: 0 },
+        { time: 4100, type: 'Slide', key: 4, pos: 0, offset: 0 },
+        { time: 4200, type: 'Slide', key: 4, pos: 0, offset: 0 },
+        { time: 4300, type: 'Slide', key: 4, pos: 0, offset: 0 },
+        { time: 4400, type: 'Slide', key: 4, pos: 0, offset: 0 },
+        { time: 4500, type: 'Slide', key: 4, pos: 0, offset: 0 },
+        { time: 4600, type: 'Slide', key: 4, pos: 0, offset: 0 },
+        { time: 4700, type: 'Slide', key: 4, pos: 0, offset: 0 },
+        { time: 4800, type: 'Slide', key: 4, pos: 0, offset: 0 },
+        { time: 4900, type: 'Slide', key: 4, pos: 0, offset: 0 },
+        { time: 5000, type: 'Slide', key: 4, pos: 0, offset: 0 },
+        { time: 5100, type: 'Slide', key: 4, pos: 0, offset: 0 },
+        /*{ time: 3000, type: 'Tap', key: 4, pos: 1, offset: 0 },
+        { time: 3100, type: 'Tap', key: 4, pos: 1, offset: 0 },
+        { time: 3200, type: 'Tap', key: 4, pos: 1, offset: 0 },
+        { time: 3300, type: 'Tap', key: 4, pos: 1, offset: 0 },
+        { time: 3400, type: 'Tap', key: 4, pos: 1, offset: 0 },
+        { time: 3500, type: 'Tap', key: 4, pos: 1, offset: 0 },
+        { time: 3600, type: 'Tap', key: 4, pos: 1, offset: 0 },
+        { time: 3700, type: 'Tap', key: 4, pos: 1, offset: 0 },
+        { time: 3800, type: 'Tap', key: 4, pos: 1, offset: 0 },
+        { time: 3900, type: 'Tap', key: 4, pos: 1, offset: 0 },
+        { time: 4000, type: 'Tap', key: 4, pos: 1, offset: 0 },
+        { time: 4100, type: 'Tap', key: 4, pos: 1, offset: 0 },
+        { time: 4200, type: 'Tap', key: 4, pos: 1, offset: 0 },
+        { time: 4300, type: 'Tap', key: 4, pos: 1, offset: 0 },
+        { time: 4400, type: 'Tap', key: 4, pos: 1, offset: 0 },
+        { time: 4500, type: 'Tap', key: 4, pos: 1, offset: 0 },
+        { time: 4600, type: 'Tap', key: 4, pos: 1, offset: 0 },
+        { time: 4700, type: 'Tap', key: 4, pos: 1, offset: 0 },
+        { time: 4800, type: 'Tap', key: 4, pos: 1, offset: 0 },
+        { time: 4900, type: 'Tap', key: 4, pos: 1, offset: 0 },
+        { time: 5000, type: 'Tap', key: 4, pos: 1, offset: 0 },
+        { time: 5100, type: 'Tap', key: 4, pos: 1, offset: 0 },
+        { time: 3000, type: 'Tap', key: 4, pos: 2, offset: 0 },
+        { time: 3100, type: 'Tap', key: 4, pos: 2, offset: 0 },
+        { time: 3200, type: 'Tap', key: 4, pos: 2, offset: 0 },
+        { time: 3300, type: 'Tap', key: 4, pos: 2, offset: 0 },
+        { time: 3400, type: 'Tap', key: 4, pos: 2, offset: 0 },
+        { time: 3500, type: 'Tap', key: 4, pos: 2, offset: 0 },
+        { time: 3600, type: 'Tap', key: 4, pos: 2, offset: 0 },
+        { time: 3700, type: 'Tap', key: 4, pos: 2, offset: 0 },
+        { time: 3800, type: 'Tap', key: 4, pos: 2, offset: 0 },
+        { time: 3900, type: 'Tap', key: 4, pos: 2, offset: 0 },
+        { time: 4000, type: 'Tap', key: 4, pos: 2, offset: 0 },
+        { time: 4100, type: 'Tap', key: 4, pos: 2, offset: 0 },
+        { time: 4200, type: 'Tap', key: 4, pos: 2, offset: 0 },
+        { time: 4300, type: 'Tap', key: 4, pos: 2, offset: 0 },
+        { time: 4400, type: 'Tap', key: 4, pos: 2, offset: 0 },
+        { time: 4500, type: 'Tap', key: 4, pos: 2, offset: 0 },
+        { time: 4600, type: 'Tap', key: 4, pos: 2, offset: 0 },
+        { time: 4700, type: 'Tap', key: 4, pos: 2, offset: 0 },
+        { time: 4800, type: 'Tap', key: 4, pos: 2, offset: 0 },
+        { time: 4900, type: 'Tap', key: 4, pos: 2, offset: 0 },
+        { time: 5000, type: 'Tap', key: 4, pos: 2, offset: 0 },
+        { time: 5100, type: 'Tap', key: 4, pos: 2, offset: 0 },
+        { time: 3000, type: 'Tap', key: 4, pos: 3, offset: 0 },
+        { time: 3100, type: 'Tap', key: 4, pos: 3, offset: 0 },
+        { time: 3200, type: 'Tap', key: 4, pos: 3, offset: 0 },
+        { time: 3300, type: 'Tap', key: 4, pos: 3, offset: 0 },
+        { time: 3400, type: 'Tap', key: 4, pos: 3, offset: 0 },
+        { time: 3500, type: 'Tap', key: 4, pos: 3, offset: 0 },
+        { time: 3600, type: 'Tap', key: 4, pos: 3, offset: 0 },
+        { time: 3700, type: 'Tap', key: 4, pos: 3, offset: 0 },
+        { time: 3800, type: 'Tap', key: 4, pos: 3, offset: 0 },
+        { time: 3900, type: 'Tap', key: 4, pos: 3, offset: 0 },
+        { time: 4000, type: 'Tap', key: 4, pos: 3, offset: 0 },
+        { time: 4100, type: 'Tap', key: 4, pos: 3, offset: 0 },
+        { time: 4200, type: 'Tap', key: 4, pos: 3, offset: 0 },
+        { time: 4300, type: 'Tap', key: 4, pos: 3, offset: 0 },
+        { time: 4400, type: 'Tap', key: 4, pos: 3, offset: 0 },
+        { time: 4500, type: 'Tap', key: 4, pos: 3, offset: 0 },
+        { time: 4600, type: 'Tap', key: 4, pos: 3, offset: 0 },
+        { time: 4700, type: 'Tap', key: 4, pos: 3, offset: 0 },
+        { time: 4800, type: 'Tap', key: 4, pos: 3, offset: 0 },
+        { time: 4900, type: 'Tap', key: 4, pos: 3, offset: 0 },
+        { time: 5000, type: 'Tap', key: 4, pos: 3, offset: 0 },
+        { time: 5100, type: 'Tap', key: 4, pos: 3, offset: 0 },*/
       ],
       speedChanges: [
         
@@ -51,7 +140,13 @@ export default class GameScene extends Scene {
   }
   
   onOpen () {
+    // 显示标题
     Game.ui.$refs.playTitle.show()
+    
+    // 绑定控制器和UI
+    Game.ui.$refs.judgeShow.show()
+    
+    // 启动遮罩层
     Game.ui.$refs.gameMask.show()
     // 绑定游戏全屏事件
     Game.ui.$refs.playTitle.setEvent('onFullScreen', this.fullScreen.bind(this))
@@ -70,7 +165,7 @@ export default class GameScene extends Scene {
     Game.ui.$refs.gameMask.hide()
     // 绑定游戏暂停事件
     Game.ui.$refs.playTitle.setEvent('onPause', this.gamePause.bind(this))
-    
+ 
     this.controller.start()
   }
   

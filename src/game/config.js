@@ -32,21 +32,23 @@ export default {
     // 判定区域的宽度
     judgeWidth: 60,
     // 判定区间，小P,Good,Bad,Miss，小于第一个数字的是大P，注意这个值其实是+-x，判定区间大小为此值的两倍
-    judgeTime: [15, 30, 60, 100],
+    judgeTime: [25, 60, 100, 150],
     // 判定得分比例，小P,Good,Bad,Miss，大P为100%
     judgeScorePercent: [90, 60, 30, 0],
+    // 判定特效动画名称，大小P,Good,Bad
+    judgeAnimationSrc: ['perfect', 'good', 'bad'],
     // 底部音符区，最大宽度
     bottomMaxWidth: 667,
     // 键位Y轴的运动距离(运动到底部)
     keyDistanceY: 375,
     // 顶部和底部的比例
-    topScaleRatio: 0.15,
+    topScaleRatio: 0.3,
     // 键位的初速度(1速)，几速乘以几
     keyMoveSpeedInitial: 0,
     // 键位从顶部到判定线用时(1速)，几速除以几
     keyMoveTime: 2500,
     // 落键速度(可以设置1/2/3/4速)
-    keySpeed: 4,
+    keySpeed: 1,
     // 歌曲播放前的空白时间，单位ms，即使不设置，也会强制空出3秒
     timeBeforeStart: 3000,
     // 按键延迟时间，正数代表按键延后(音乐提前)，负数代表按键提前(音乐延后)
@@ -57,10 +59,20 @@ export default {
       // 单点按键
       Tap: {
         // 高度设置(以到达屏幕底部的宽度为准)
-        height: 15,
+        height: 20,
         // 纹理资源
-        res: ['/img/tap.png']
+        res: ['tap_0.png', 'tap_1.png', 'tap_2.png']
+      },
+      // 滑动按键
+      Slide: {
+        height: 15,
+        res: ['slide_0.png', 'slide_1.png', 'slide_2.png']
       }
+    },
+    
+    // 按键击中动画
+    keyAnimate: {
+      
     }
   },
   

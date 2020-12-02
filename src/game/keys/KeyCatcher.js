@@ -135,7 +135,7 @@ export default class KeyCatcher {
   // 对按键进行判定
   judge (notes) {
     // 每一个手势对象都对按键进行判定
-    // console.log(this.getTime(), this.gestureMap, notes)
+    // console.log(this.getTime(), this.gestureMap, notes.values().next().value)
     this.gestureMap.forEach((gesture) => {
       let isSuccess = false
       for (let note of notes) {

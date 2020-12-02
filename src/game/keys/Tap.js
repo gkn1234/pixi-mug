@@ -52,36 +52,15 @@ export default class Tap {
   
   // 初始化该按键的精灵
   _initSprite () {
-    // 检查纹理配置，顺便检查options配置
-    this._initTexture()
-    
-    // this.texture为按键纹理的索引字符串
-    const texture = Game.loader.resources[this.texture].texture
-    // 从对象池中获取Sprite
-    this.sprite = this.controller.notePool.Sprite.get(this.texture, texture)
-  }
-  
-  // 初始化纹理
-  _initTexture () {
     const options = this.options
-    
-    const error = 'Invalid key settings in config file!'
-    const gameConfig = Game.config.game
     const noteType = this.constructor.name
-    
-    // 有关于纹理方面的配置有问题
-    if (!gameConfig.keySetting || !gameConfig.keySetting[noteType]) {
-      throw new Error(error)
-    }
-    if (!utils.obj.isArray(gameConfig.keySetting[noteType].res) || gameConfig.keySetting[noteType].res.length <= 0) {
-      throw new Error(error)
-    }
-    // 保存按键个性配置
-    this.keySetting = gameConfig.keySetting[noteType]
-    
+    this.keySetting = this.controller.keySetting[noteType]
     // 确定皮肤
     this.style = utils.obj.isValidNum(options.style) && options.style >= 0 && options.style < this.keySetting.res.length ? Math.floor(options.style) : 0
-    this.texture = this.keySetting.res[this.style]
+    this.texture = this.keySetting.textures[this.style]
+    this.textureName = this.keySetting.res[this.style]
+    // 从对象池中获取Sprite
+    this.sprite = this.controller.notePool.Sprite.get(this.textureName, this.texture)
   }
   
   // 初始化位置参数
@@ -146,10 +125,10 @@ export default class Tap {
     const kWidth = (finalWidth - initWidth) / gameConfig.keyDistanceY
     const bWidth = finalWidth - kWidth * gameConfig.keyDistanceY
     // 计算判定区的横坐标
-    const x = k * sY + b
+    const judgeCenterX = k * sY + b
     const judgeWidth = kWidth * sY + bWidth
-    const judgeLeftX = x - judgeWidth / 2
-    const judgeRightX = x + judgeWidth / 2
+    const judgeLeftX = judgeCenterX - judgeWidth / 2
+    const judgeRightX = judgeCenterX + judgeWidth / 2
     
     return {
       key, pos, offset,
@@ -157,7 +136,7 @@ export default class Tap {
       initWidth, initHeight,
       initLeftX, finalLeftX,
       initCenterX, finalCenterX,
-      judgeLeftX, judgeRightX,
+      judgeLeftX, judgeRightX, judgeCenterX,
       sY, k, b
     }
   }
@@ -308,14 +287,18 @@ export default class Tap {
   }
   
   checkGesture (gesture) {
-    if (gesture.state === 'up' || gesture.state === 'down') {
+    if (!gesture.tapDisabled && (gesture.state === 'up' || gesture.state === 'down')) {
       if (this.isGesturePosIn(gesture.pos)) {
         // 位置判定成功
         const timeOffset = gesture.time - this.time
         const level = this.getJudgeLevel(timeOffset)
         if (level >= 0) {
+          // 一旦手势成功判定单键，则将单键锁tapDisabled置为true，一个手势只能判定一次单键
+          gesture.tapDisabled = true
           // 判定成功
           this.controller.setJudge(level, timeOffset, this)
+          // 打击特效
+          this.controller.tapAnimate(level, this.judgeCenterX)
           // 判定成功时自然要删除按键，避免连续判定
           this.endDrop()
         }

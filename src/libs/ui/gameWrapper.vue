@@ -153,7 +153,7 @@ export default {
   mounted () {
     // 执行屏幕适配
     this.fixScreen()
-    window.addEventListener('resize', utils.common.debounce(this.fixScreen, 200))
+    window.addEventListener('resize', utils.common.throttle(this.fixScreen, 500))
   },
 }
 
