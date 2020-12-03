@@ -65,8 +65,13 @@ export default class Tap {
   
   // 初始化位置参数
   _initPos () {
-    // 获取通用位置参数
-    const commonPos = this._initCommonPos()
+    const options = this.options
+    const gameConfig = Game.config.game
+    // 修正轨道位置三大参数key/pos/offset
+    const keyPos = this._fixKeyPos(options.key, options.pos, options.offset)
+    Object.assign(this, keyPos)
+    // 计算通用的位置参数
+    const commonPos = this._getCommonPos(this.key, this.pos, this.offset)
     Object.assign(this, commonPos)
     
     // 初始锚点中心
@@ -85,59 +90,60 @@ export default class Tap {
     this.sprite.y = 0
   }
   
-  // 获取通用位置参数
-  _initCommonPos () {
-    const options = this.options
+  // 对确定按键在轨道中位置的key/pos/offset三大参数进行修正
+  _fixKeyPos (key, pos, offset) {
+    key = utils.obj.isValidNum(key) && key >= Tap.MIN_KEY_NUM && key <= Tap.MAX_KEY_NUM ? Math.floor(key) : Tap.DEFAULT_KEY_NUM
+    pos = utils.obj.isValidNum(pos) && pos >= 0 && pos < key ? Math.floor(pos) : 0
+    offset = utils.obj.isValidNum(offset) && 
+      offset >= pos * Tap.MAX_NOTE_OFFSET * (-1) && 
+      offset <= Tap.MAX_KEY_NUM - pos - 1 * Tap.MAX_NOTE_OFFSET ?
+      Math.floor(offset) : 0
+    
+    return { key, pos, offset }
+  }
+  
+  // 传入修正后的key/pos/offset三大参数(轨道位置信息)，获取通用的位置参数
+  _getCommonPos (key, pos, offset) {
     const gameConfig = Game.config.game
-    
-    const key = utils.obj.isValidNum(options.key) && options.key >= Tap.MIN_KEY_NUM && options.key <= Tap.MAX_KEY_NUM ? Math.floor(options.key) : Tap.DEFAULT_KEY_NUM
-    const pos = utils.obj.isValidNum(options.pos) && options.pos >= 0 && options.pos < key ? Math.floor(options.pos) : 0
-    const offset = utils.obj.isValidNum(options.offset) && 
-      options.offset >= pos * Tap.MAX_NOTE_OFFSET * (-1) && 
-      options.offset <= Tap.MAX_KEY_NUM - pos - 1 * Tap.MAX_NOTE_OFFSET ?
-      Math.floor(options.offset) : 0
-    
-    // 将该对象看做一条横线，计算相关坐标
+
     // 按键到达底部的宽高
-    const finalHeight = this.keySetting.height
     const finalWidth = gameConfig.bottomMaxWidth / key
+    const finalHeight = this.keySetting.height
     // 按键在顶部的宽高
     const initWidth = gameConfig.topScaleRatio * finalWidth
-    const initHeight = gameConfig.topScaleRatio * finalHeight
+    const initHeight = gameConfig.topScaleRatio * this.finalHeight
+    // 计算按键的宽度关于Y方向位置的斜率与截距
+    const linearWidth = Tap.getLinearInfo(0, gameConfig.keyDistanceY, initWidth, finalWidth)
+    const kWidth = linearWidth.k
+    const bWidth = linearWidth.b
     
     // 计算按键在X方向上的路程(从顶部到达底部)
     // 先计算底部终点X坐标
     const finalLeftOffset = (Game.config.width - gameConfig.bottomMaxWidth) / 2
     const finalLeftX = finalLeftOffset + finalWidth * pos + offset * finalWidth / Tap.MAX_NOTE_OFFSET
     const finalCenterX = finalLeftX + finalWidth / 2
-    // 计算屏幕顶部起始偏移量，由此计算出顶部起点
+    // 计算屏幕顶部起始偏移量，由此计算出顶部起点X坐标
     const topLeftOffset = finalLeftOffset + ((1 - gameConfig.topScaleRatio) * gameConfig.bottomMaxWidth) / 2
     const initLeftX = topLeftOffset + initWidth * pos + offset * initWidth / Tap.MAX_NOTE_OFFSET
     const initCenterX = initLeftX + initWidth / 2
     // Y方向上的路程
     const sY = gameConfig.keyDistanceY - gameConfig.judgeLineToBottom
-    // x关于y的直线方程的斜率
-    const k = (finalCenterX - initCenterX) / gameConfig.keyDistanceY
-    // x关于y的直线方程的截距
-    const b = finalCenterX - k * gameConfig.keyDistanceY
+    // X关于Y的直线方程的斜率与截距
+    const { k, b } = Tap.getLinearInfo(0, gameConfig.keyDistanceY, initCenterX, finalCenterX)
     
-    // 计算按键的宽度关于Y方向位置的斜率与截距
-    const kWidth = (finalWidth - initWidth) / gameConfig.keyDistanceY
-    const bWidth = finalWidth - kWidth * gameConfig.keyDistanceY
-    // 计算判定区的横坐标
+    // 最后算出判定区的横坐标
     const judgeCenterX = k * sY + b
     const judgeWidth = kWidth * sY + bWidth
     const judgeLeftX = judgeCenterX - judgeWidth / 2
     const judgeRightX = judgeCenterX + judgeWidth / 2
     
     return {
-      key, pos, offset,
-      finalWidth, finalHeight,
-      initWidth, initHeight,
+      initWidth, finalWidth,
+      initHeight, finalHeight,
       initLeftX, finalLeftX,
       initCenterX, finalCenterX,
       judgeLeftX, judgeRightX, judgeCenterX,
-      sY, k, b
+      sY, k, b, kWidth, bWidth
     }
   }
   
@@ -148,25 +154,12 @@ export default class Tap {
     // 瞬时Y轴速度，初始化为初速度
     this.vY = this.controller.standardV0
     // X和Y的缩放比例与Y轴的位置线性相关
-    this.scaleKX = (this.finalScaleX - this.initScaleX) / gameConfig.keyDistanceY
-    this.scaleKY = (this.finalScaleY - this.initScaleY) / gameConfig.keyDistanceY
-    this.scaleBX = this.finalScaleX - this.scaleKX * gameConfig.keyDistanceY
-    this.scaleBY = this.finalScaleY - this.scaleKY * gameConfig.keyDistanceY
-  }
-  
-  // 开始下落
-  startDrop () {
-    this.controller.scene.addChild(this.sprite)
-    this.controller.children.add(this)
-    
-    // 记录按键变速情况
-    this.speed = this.controller.speedChangeIndex < 0 ? 1 : this.controller.speedChanges[this.controller.speedChangeIndex].speed
-  }
-  
-  // 结束下落
-  endDrop () {
-    this.controller.scene.removeChild(this.sprite)
-    this.controller.children.delete(this)
+    const linearScaleX = Tap.getLinearInfo(0, gameConfig.keyDistanceY, this.initScaleX, this.finalScaleX)
+    const linearScaleY = Tap.getLinearInfo(0, gameConfig.keyDistanceY, this.initScaleY, this.finalScaleY)
+    this.scaleKX = linearScaleX.k
+    this.scaleBX = linearScaleX.b
+    this.scaleKY = linearScaleY.k
+    this.scaleBY = linearScaleY.b
   }
   
   /*
@@ -242,11 +235,11 @@ export default class Tap {
     
     // 是否超出判定时间
     if (this.controller.curTime - this.time > this.controller.missTime) {
-      // 超出判定时间的同时，位置也在底部以下，则移除按键
+      // 超出判定时间时，结算并展示判定结果
+      this.controller.showJudge(this)
       if (this.sprite.y >= gameConfig.keyDistanceY) {
-        // 到了需要整体移除按键的时候，只能设置为miss
-        this.controller.setMiss(this)
-        this.endDrop()
+        // 判定结果结算完成后，且按键Y轴运动距离已经达到视线之外，则彻底释放按键
+        this.controller.removeNote(this)
       }
     }
   }
@@ -286,21 +279,27 @@ export default class Tap {
     return -1
   }
   
+  // 该按键被判定成功
+  setJudge (level, offset) {
+    this.level = level
+    this.offset = offset
+    console.log('判定', this.pos, this.level, this.offset)
+    
+    // 通知控制器对按键成功判定进行处理
+    this.controller.judgeNote(this)
+  }
+  
   checkGesture (gesture) {
-    if (!gesture.tapDisabled && (gesture.state === 'up' || gesture.state === 'down')) {
+    if (!gesture.tapDisabled && gesture.isDown()) {
       if (this.isGesturePosIn(gesture.pos)) {
         // 位置判定成功
-        const timeOffset = gesture.time - this.time
+        const timeOffset = Math.floor(gesture.time - this.time)
         const level = this.getJudgeLevel(timeOffset)
         if (level >= 0) {
           // 一旦手势成功判定单键，则将单键锁tapDisabled置为true，一个手势只能判定一次单键
           gesture.tapDisabled = true
           // 判定成功
-          this.controller.setJudge(level, timeOffset, this)
-          // 打击特效
-          this.controller.tapAnimate(level, this.judgeCenterX)
-          // 判定成功时自然要删除按键，避免连续判定
-          this.endDrop()
+          this.setJudge(level, timeOffset)
         }
         return level
       }
@@ -308,5 +307,12 @@ export default class Tap {
     // 返回负数代表未判定
     return -1
     // console.log(gesture)
+  }
+  
+  // 计算线性关系的参数，y = kx + b
+  static getLinearInfo(x1, x2, y1, y2) {
+    const k = (y2 - y1) / (x2 - x1)
+    const b = y2 - k * x2
+    return { k, b }
   }
 }

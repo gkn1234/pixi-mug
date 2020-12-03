@@ -130,6 +130,7 @@ export default class KeyCatcher {
   // 移除一个手势
   removeGesture (gesture) {
     this.gestureMap.delete(gesture.id)
+    gesture.catcher = null
   }
   
   // 对按键进行判定

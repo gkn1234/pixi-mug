@@ -1,5 +1,5 @@
 import Sound from 'pixi-sound'
-import { AnimatedSprite, Sprite } from 'pixi.js'
+import { AnimatedSprite, Sprite, Graphics } from 'pixi.js'
 
 import utils from '@/libs/utils/index.js'
 import Game from '@/libs/Game.js'
@@ -8,14 +8,15 @@ import Pool from '@/libs/Pool.js'
 import KeyCatcher from './KeyCatcher.js'
 import Tap from './Tap.js'
 import Slide from './Slide.js'
+import Hold from './Hold.js'
 
 // 解析谱面，游戏主控逻辑
 export default class KeyController {
-  constructor (noteData = {}, scene) {
+  constructor (noteData = {}, container) {
     // 记录谱面信息
     this.data = noteData
     // 游戏场景对象
-    this.scene = scene
+    this.container = container
     
     this._init()
   }
@@ -23,8 +24,10 @@ export default class KeyController {
   static NOTE_CONSTRUCTOR = {
     AnimatedSprite: AnimatedSprite,
     Sprite: Sprite,
+    Graphics: Graphics,
     Tap: Tap,
-    Slide: Slide
+    Slide: Slide,
+    Hold: Hold
   }
   
   _init () {
@@ -54,9 +57,9 @@ export default class KeyController {
   
   // 初始化按键判定
   _initKeyJudge () {
-    this.keyCatcher = new KeyCatcher(this, this.scene)
+    this.keyCatcher = new KeyCatcher(this, this.container)
     this.keyCatcher.setCallback('onGestureUpdate', (e) => {
-      console.log('手势状态更新', e.state)
+      console.log('手势状态更新', e.state, e.id)
     })
   }
   
@@ -77,14 +80,14 @@ export default class KeyController {
       if (utils.obj.isArray(this.keySetting[key].res) && this.keySetting[key].res.length > 0) {
         // 获取按键纹理
         this.keySetting[key].textures = this.keySetting[key].res.map((texture) => {
-          return this.scene.sheet.textures[texture]
+          return this.container.sheet.textures[texture]
         })
       }
     }
     
     // 按键击打特效获取
     this.keyAnimations = gameConfig.judgeAnimationSrc.map((animation) => {
-      return this.scene.sheet.animations[animation]
+      return this.container.sheet.animations[animation]
     })
   }
   
@@ -279,12 +282,13 @@ export default class KeyController {
   startSettings () {
     // 初始化计时器
     const gameConfig = Game.config.game
-    this.curTimeStamp = Date.now()
     this.curTime = this.timeBeforeStart * (-1)
     // 按键延迟时间
     this.keyStartDelay = utils.obj.isValidNum(gameConfig.keyStartDelay) ? gameConfig.keyStartDelay : 0
-    // 当前面板上呈现的按键
+    // 当前待判定的按键
     this.children = new Set()
+    // 当前已经判定的按键
+    this.judgedChildren = new Set()
     // 当前遍历到的note索引
     this.noteIndex = 0
     // 当前的变速索引，-1为不变速，为几就是处于第几个变速对象
@@ -300,6 +304,7 @@ export default class KeyController {
     this.level = 0
     // 上一次判定的offset
     this.offset = 0
+    
     // 同步到UI
     this.syncJudgeUI()
   }
@@ -323,7 +328,6 @@ export default class KeyController {
   
   // 游戏恢复
   resume () {
-    this.curTimeStamp = Date.now()
     Game.ticker.start()
     this.keyCatcher.start()
     Sound.resume('bgm')
@@ -333,9 +337,12 @@ export default class KeyController {
   restart () {
     Game.ticker.stop()
     Sound.stop('bgm')
+    // 清空屏幕上的精灵
+    this.judgedChildren.forEach((child) => {
+      this.removeNote(child)
+    })
     this.children.forEach((child) => {
-      // 清空屏幕上的精灵
-      child.endDrop()
+      this.removeNote(child)
     })
     
     // 初始化游戏参数
@@ -354,22 +361,13 @@ export default class KeyController {
   
   // 每一帧的屏幕刷新
   onUpdate () {
-    const nowTimeStamp = Date.now()
-    const deltaStamp = nowTimeStamp - this.curTimeStamp
-    this.curTime = this.curTime + deltaStamp
+    const delta = Game.ticker.elapsedMS
+    // console.log(delta)
+    this.curTime = this.curTime + delta
     // console.log(this.curTime, nowTimeStamp, deltaStamp)
     if (!this._isMusicPlay && this.curTime >= this.keyStartDelay * (-1)) {
       // 过了延时时间后，播放BGM
       this.playMusic()
-    }
-    
-    while (this.noteIndex < this.notes.length && this.curTime >= this.notes[this.noteIndex].start) {
-      // 将当前时间的按键加入版面
-      const note = this.notePool[this.notes[this.noteIndex].type].get()
-      note.init(this, this.notes[this.noteIndex])
-      note.startDrop()
-      // console.log(note)
-      this.noteIndex++
     }
     
     // 判断当前是否处于变速区
@@ -377,32 +375,81 @@ export default class KeyController {
       return item.start <= this.curTime && this.curTime <= item.end
     })
     
+    this.judgedChildren.forEach((child) => {
+      // 先更新已判定区的按键
+      child.onUpdate(delta)
+    })
     this.children.forEach((child) => {
-      // 更新按键
-      child.onUpdate(deltaStamp)
+      // 再更新待判定的按键
+      child.onUpdate(delta)
     })
     
     // 进行一轮按键判定
     this.keyCatcher.judge(this.children)
     
-    this.curTimeStamp = nowTimeStamp
+    while (this.noteIndex < this.notes.length && this.curTime >= this.notes[this.noteIndex].start) {
+      // 将当前时间的按键加入版面
+      const note = this.notePool[this.notes[this.noteIndex].type].get()
+      note.init(this, this.notes[this.noteIndex])
+      this.addNote(note)
+      // console.log(note)
+      this.noteIndex++
+    }
   }
   
-  // 判定成功记录
-  setJudge (level, offset, note) {
-    console.log('判定成功', note.pos, level, offset)
-    this.combo++
-    this.level = level
-    this.offset = offset
-    this.syncJudgeUI()
+  // 添加一个按键
+  addNote (note) {
+    this.container.addChild(note.sprite)
+    this.children.add(note)
+    
+    // 修改按键变速情况
+    note.speed = this.speedChangeIndex < 0 ? 1 : this.speedChanges[this.speedChangeIndex].speed
   }
   
-  // 判定miss
-  setMiss (note) {
-    console.log('miss')
-    this.combo = 0
-    this.level = -1
-    this.syncJudgeUI()
+  // 判定了一个按键
+  judgeNote (note) {
+    // 待判定区删除此按键
+    this.children.delete(note)
+    // 按键从场景中移除
+    this.container.removeChild(note.sprite)
+    // 按键加入已判定区
+    this.judgedChildren.add(note)
+    
+    // 播放打击特效
+    this.tapAnimate(note.level, note.judgeCenterX)
+  }
+  
+  // 移除一个按键
+  removeNote (note) {
+    if (note.hasOwnProperty('level') && note.level >= 0) {
+      // 已判定的按键从已判定区中移除
+      this.judgedChildren.delete(note)
+    }
+    else {
+      // 未判定的按键从待判定区以及场景中移除
+      this.children.delete(note)
+      this.container.removeChild(note.sprite)
+    }
+    // 释放parent指针
+    note.controller = null
+  }
+  
+  // 判定成功结算
+  showJudge (note) {
+    if (!note.isComplete) {
+      this.level = note.hasOwnProperty('level') && note.level >= 0 ? note.level : -1
+      if (this.level < 0) {
+        this.combo = 0
+        console.log('miss')
+      }
+      else {
+        this.combo++
+        this.offset = note.offset      
+        // console.log('判定结算', note.pos, this.level, this.offset)
+      }
+      this.syncJudgeUI()
+      note.isComplete = true
+    }
   }
   
   // 同步到判定UI
@@ -412,6 +459,10 @@ export default class KeyController {
   
   // 播放按键击中特效
   tapAnimate (level, x) {
+    if (level < 0) {
+      return
+    }
+    
     const gameConfig = Game.config.game
     const animationIndex = level >= 1 ? level - 1 : 0
     const animation = this.keyAnimations[animationIndex]
@@ -426,10 +477,10 @@ export default class KeyController {
     animationSprite.scale.set(2)
     // 动画播放完成后
     animationSprite.onComplete = () => {
-      this.scene.removeChild(animationSprite)
+      this.container.removeChild(animationSprite)
       animationSprite.onComplete = () => {}
     }
-    this.scene.addChild(animationSprite)
+    this.container.addChild(animationSprite)
     animationSprite.play()
   }
   

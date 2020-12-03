@@ -1,6 +1,8 @@
 import utils from '@/libs/utils/index.js'
 import Game from '@/libs/Game.js'
 
+import Tap from './Tap.js'
+
 export default class KeyGesture {
   constructor (id, catcher) {
     this.id = id
@@ -17,7 +19,8 @@ export default class KeyGesture {
   static STATE = {
     down: 'down',
     move: 'move',
-    up: 'up'
+    up: 'up',
+    hold: 'hold'
   }
   
   // 根据事件对象获取位置参数
@@ -37,6 +40,7 @@ export default class KeyGesture {
     this.startPos = this._getPos(e)
     // 当前激活的位置即为down的位置
     this.pos = this.startPos
+    this.movePos = this.pos
     // 当前激活时的时间
     this.time = this.startTime
     // 复杂的事件对象
@@ -61,14 +65,23 @@ export default class KeyGesture {
     }
     
     if (this._checkMoveActive()) {
-      // 更新move事件
-      this.state = KeyGesture.STATE.move
-      this.moveTime = this.catcher.getTime()
-      this.pos = this._getPos(e)
-      this.time = this.moveTime
-      this.detail = e
+      const gameConfig = Game.config.game
       
-      this.catcher.onGestrueUpdate(this)
+      this.pos = this._getPos(e)
+      let deltaX = this.pos.x - this.movePos.x
+      deltaX = deltaX < 0 ? deltaX * (-1) : deltaX
+      if (deltaX >= (gameConfig.bottomMaxWidth / Tap.MAX_KEY_NUM) * 0.5) {
+        console.log(this.pos.x, this.movePos.x, deltaX)
+        // 在X轴方向必须至少移动一个8K轨道的距离，才算做一次move事件
+        // 距离不够的，依然算作hold事件
+        this.state = KeyGesture.STATE.move
+        this.moveTime = this.catcher.getTime()
+        this.movePos = this.pos
+        this.time = this.moveTime
+        this.detail = e
+        
+        this.catcher.onGestrueUpdate(this)        
+      }
     }
   }
   
@@ -107,37 +120,67 @@ export default class KeyGesture {
     return true
   }
   
-  // 进行一轮判定后，更新手势状态。isJudge代表是否判定成功
+  // 每一帧都会触发，进行一轮判定后，更新手势状态。isJudge代表是否判定成功
   judgeUpdate (isJudge = false) {
     // 获取当前时间
     const curTime = this.catcher.getTime()
+    
+    if (this.state === KeyGesture.STATE.up) {
+      // up事件是事件的末尾，手势未判定将直接结束
+      this.catcher.removeGesture(this)
+      return
+    }
+    
     if (!isJudge) {
       // 未判定到按键
-      if (this.state === KeyGesture.STATE.down || this.state === KeyGesture.STATE.up) {
-        // down和up状态下没有判定到按键
-        const judgeTime = this.state === KeyGesture.STATE.down ? this.startTime : this.endTime
-        if (curTime - judgeTime > this.missTime) {
+      if (this.state === KeyGesture.STATE.down) {
+        if (curTime - this.time > this.missTime) {
           // 一旦当前时间再超过判定miss的时间，代表判定彻底失败就移除
           this.catcher.removeGesture(this)
+          return
         }
       }
       else {
-        // move状态下则要检查当前时间是否超限。并根据结果自动处理
-        this._checkMoveActive()
+        // move和hold状态下则要检查当前时间是否超限。并根据结果自动处理
+        const sign = this._checkMoveActive()
+        if (!sign) {
+          // 超限时移除手势，直接返回
+          return
+        }
       }      
     }
     else {
-      // 判定到了按键
-      if (this.state === KeyGesture.STATE.down || this.state === KeyGesture.STATE.move) {
-        // down事件成功判定，赋予activeTime属性，同时使手势可能转为move状态
-        // move事件成功判定，更新activeTime属性
-        this.activeTime = this.catcher.getTime()
-      }
-      else {
-        // up事件是事件的末尾，判定成功后，手势结束
-        this.catcher.removeGesture(this)
-      }      
+      // 判定成功时，更新activeTime属性，延长手势的存活时间
+      this.activeTime = curTime
     }
-    this.time = curTime
+    
+    const lastState = this.state
+    if (lastState !== KeyGesture.STATE.hold) {
+      // 完成判定后，从其他状态转为hold
+      this.state = KeyGesture.STATE.hold
+      // 触发手势状态更新回调
+      this.catcher.onGestrueUpdate(this)      
+    }
+  }
+  
+  // 获取判定时间
+  getJudgeTime () {
+    // hold状态下的判定时间就是当前时间，其他状态下，以状态变化时的瞬时时间为准
+    return this.state === KeyGesture.STATE.hold ? this.catcher.getTime() : this.time
+  }
+  
+  // 手势是否为hold
+  isHold () {
+    return this.state === KeyGesture.STATE.hold
+  }
+  
+  // 手势是否为down
+  isDown () {
+    return this.state === KeyGesture.STATE.down
+  }
+  
+  // 手势是否为move
+  isMove () {
+    return this.state === KeyGesture.STATE.move
   }
 }

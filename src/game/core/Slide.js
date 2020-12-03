@@ -10,19 +10,23 @@ export default class Slide extends Tap {
   
   // 与单键相比，滑键能被所有事件判定
   checkGesture (gesture) {
+    // 获取判定时间
+    const judgeTime = gesture.getJudgeTime()
+    
     if (this.isGesturePosIn(gesture.pos)) {
       // 位置判定成功
-      const timeOffset = gesture.time - this.time
+      const timeOffset = Math.floor(judgeTime - this.time)
       const level = this.getJudgeLevel(timeOffset)
-      if (level >= 0) {
+      if (
+        // move / down / up 状态的手势会进行准确度校验
+        (level >= 0 && !gesture.isHold()) ||
+        // hold状态永远只做完美判定
+        (level == 0 && gesture.isHold())
+      ) {
         // 一旦手势成功判定单键，则将单键锁tapDisabled置为true，一个手势只能判定一次单键
         gesture.tapDisabled = true
         // 判定成功
-        this.controller.setJudge(level, timeOffset, this)
-        // 打击特效
-        this.controller.tapAnimate(level, this.judgeCenterX)
-        // 判定成功时自然要删除按键，避免连续判定
-        this.endDrop()
+        this.setJudge(level, timeOffset)
       }
       return level
     }

@@ -18,7 +18,7 @@
 
 <script>
 
-import { reactive, ref, getCurrentInstance } from 'vue'
+import { reactive, ref, computed, getCurrentInstance } from 'vue'
 
 export default {
   name: 'judgeShow',

@@ -98,27 +98,44 @@ export default {
           // 适配模式1：默认水平垂直居中 default
       }
     },
-    // 宽度顶满 fixedWidth
+    // fixedWidth 宽度优先顶满，遇到高度不足时，宽度将会收缩
     fixedWidth () {
       // 移动端翻转屏幕是获取的window.innerWidth值不准确
       // console.log(this.$el.offsetWidth, this.$el.offsetHeight)
-      const desWidth = this.isSizeNumber(this.options.gameMaxWidth) && this.options.gameMaxWidth < this.$el.offsetWidth ? this.options.gameMaxWidth : this.$el.offsetWidth
-
-      const ratio = desWidth / parseInt(this.options.gameWidth)
-      this.style.transform = `translate(-50%, -50%) scale(${ratio})`
+      const originRatio = this.options.gameWidth / this.options.gameHeight
+      
+      let desWidth = this.isSizeNumber(this.options.gameMaxWidth) && this.options.gameMaxWidth < this.$el.offsetWidth ? this.options.gameMaxWidth : this.$el.offsetWidth
+      let desHeight = desWidth / originRatio
+      if (desHeight > this.$el.offsetHeight) {
+        desHeight = this.$el.offsetHeight
+        desWidth = desHeight * originRatio
+      }
+      const xRatio = desWidth / parseInt(this.options.gameWidth)
+      const yRatio = desHeight / parseInt(this.options.gameHeight)
+      this.style.transform = `translate(-50%, -50%) scale(${xRatio}, ${yRatio})`
     },
-    // 高度顶满 fixedHeight
+    // fixedHeight 高度优先顶满，遇到宽度不足时，高度将会收缩
     fixedHeight () {
-      const desHeight = this.isSizeNumber(this.options.gameMaxHeight) && this.options.gameMaxHeight < this.$el.offsetHeight ? this.options.gameMaxHeight : this.$el.offsetHeight
-      const ratio = desHeight / parseInt(this.options.gameHeight)
-      this.style.transform = `translate(-50%, -50%) scale(${ratio})`
+      const originRatio = this.options.gameWidth / this.options.gameHeight
+      
+      let desHeight = this.isSizeNumber(this.options.gameMaxHeight) && this.options.gameMaxHeight < this.$el.offsetHeight ? this.options.gameMaxHeight : this.$el.offsetHeight
+      let desWidth = desHeight * originRatio
+      if (desWidth > this.$el.offsetWidth) {
+        desWidth = this.$el.offsetWidth
+        desHeight = desWidth / originRatio
+      }
+      const xRatio = desWidth / parseInt(this.options.gameWidth)
+      const yRatio = desHeight / parseInt(this.options.gameHeight)
+      this.style.transform = `translate(-50%, -50%) scale(${xRatio}, ${yRatio})`
     },
     // 宽度高度均优先顶满
     fullFixed () {
       const xRatio = this.$el.offsetWidth / parseInt(this.options.gameWidth)
       const yRatio = this.$el.offsetHeight / parseInt(this.options.gameHeight)
       this.style.transform = `translate(-50%, -50%) scale(${xRatio}, ${yRatio})`
-    }
+    },
+    
+    
   },
   setup (props, context) {
     const initStyle = () => {
