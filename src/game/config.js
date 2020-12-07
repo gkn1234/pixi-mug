@@ -39,11 +39,11 @@ export default {
     // 各种note的独特设置
     noteUnique: {
       Tap: {
-        height: 20,
+        height: 60,
         src: ['tap_0.png', 'tap_1.png', 'tap_2.png']
       },
       Slide: {
-        height: 15,
+        height: 45,
         src: ['slide_0.png', 'slide_1.png', 'slide_2.png']
       },
       Hold: {
@@ -59,7 +59,7 @@ export default {
     // 音符面板的高，从顶部起算
     containerHeight: 1080,
     // 音符面板的边框宽度，限制落键范围
-    containerBorderWidth: 40,
+    containerBorderWidth: 80,
     
     // 判定线 距离 音符面板 底部的距离
     judgeHeight: 144,
@@ -68,15 +68,15 @@ export default {
     
     // 运动参数
     // 键位从顶部到判定线用时(1速)，速度每加1，用时减去 3/28
-    keyMoveTime: 2500,
+    noteMoveTime: 2500,
     // 落键速度(可以设置1/2/3/4/5/6/7/8速)
-    keySpeed: 3,
+    noteSpeed: 6,
     
     // 延迟参数
     // 歌曲播放前的空白时间，单位ms，即使不设置，也会强制空出3秒
     timeBeforeStart: 3000,
     // 按键延迟时间，正数代表按键延后(音乐提前)，负数代表按键提前(音乐延后)。该参数只影响音乐播放时间，不应该影响按键逻辑！！！
-    keyStartDelay: 0,
+    startDelay: 0,
     
     // 判定区间，小P,Good,Bad,Miss，小于第一个数字的是大P，注意这个值其实是+-x，判定区间大小为此值的两倍
     judgeTime: [25, 60, 100, 150],
@@ -84,15 +84,5 @@ export default {
     judgeScorePercent: [90, 60, 30, 0],
     // 判定特效动画名称，大小P,Good,Bad
     judgeAnimationSrc: ['perfect', 'good', 'bad'],
-    
-    // 按键击中动画
-    keyAnimate: {
-      
-    }
   },
-  
-  // 资源设置
-  resources: [
-    
-  ]
 }

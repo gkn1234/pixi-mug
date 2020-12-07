@@ -3,15 +3,14 @@ import { Sprite } from 'pixi.js'
 import Game from '@/libs/Game.js'
 import utils from '@/libs/utils/index.js'
 
-import KeyGesture from './KeyGesture.js'
+import NoteUtils from './NoteUtils.js'
+import Gesture from './Gesture.js'
 
 // 按键判定器
-export default class KeyCatcher {
-  constructor (controller, scene) {
+export default class GestureCatcher {
+  constructor (controller) {
     // 控制器，用于获取时间
     this.controller = controller
-    // 场景，用于在移动端生成判定精灵
-    this.scene = scene
     // 手势Map，用事件的id作为key，事件对象为value
     this.gestureMap = new Map()
     // 回调函数
@@ -23,25 +22,26 @@ export default class KeyCatcher {
   
   _init () {
     // 划分PC端和移动端，PC端键盘判定，移动端手势判定
-    this._initMobileJudge()
+    this._mobileActivate()
   }
   
   // 移动端按键判定
-  _initMobileJudge () {
+  _mobileActivate () {
+    const scene = this.controller.scene
+    
+    const { containerWidth, trueHeight, judgeHeight, judgeAreaSize } = NoteUtils.getValidSize()
     const gameConfig = Game.config.game
     // 生成判定区域 测试纹理 Game.loader.resources['/img/tap.png'].texture
     let judgeArea = new Sprite()
-    judgeArea.width = Game.config.width
-    judgeArea.height = gameConfig.judgeWidth
-    judgeArea.y = gameConfig.keyDistanceY - gameConfig.judgeLineToBottom - gameConfig.judgeWidth / 2
+    judgeArea.width = containerWidth
+    judgeArea.height = judgeAreaSize
+    judgeArea.y = trueHeight - judgeAreaSize / 2
     judgeArea.interactive = true
-    this.scene.addChild(judgeArea)
-    this.judgeArea = judgeArea
-    console.log(judgeArea)
+    scene.addChild(judgeArea)
     
-    this.judgeArea.on('pointerdown', this._downHandler, this)
-    this.judgeArea.on('pointermove', this._moveHandler, this)
-    this.judgeArea.on('pointerup', this._upHandler, this)
+    judgeArea.on('pointerdown', this._downHandler, this)
+    judgeArea.on('pointermove', this._moveHandler, this)
+    judgeArea.on('pointerup', this._upHandler, this)
   }
   
   // pointerdown回调
@@ -53,7 +53,7 @@ export default class KeyCatcher {
     
     const curTime = this.controller.curTime
     // down为一个手势的开始，创建一个手势对象
-    let gesture = new KeyGesture(e.data.identifier, this)
+    let gesture = new Gesture(e.data.identifier, this)
     // 手势对象加入down事件
     gesture.down(e)
     // 加入列表

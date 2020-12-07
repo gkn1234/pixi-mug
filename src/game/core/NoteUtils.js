@@ -6,13 +6,17 @@ import Game from '@/libs/Game.js'
 // 核心逻辑辅助工具类
 export default class NoteUtils {
   constructor () {}
-  
+    
   // 对下落容器进行仿射变换的倍率，这样顶部宽度正好是底部宽度的1 / 5
   // 仿射变换的原理没有搞清楚，现在是摸索API试出来的效果，以后一定要好好学计算机图形学
   static AFFINE_FACTOR = 5
   
   // 速度在1速的基础上每增加1，用时减少的比例，最高8速用时比例为 7 / 28，正好是 1 / 4，相当于节奏大师4速
   static SPEED_TIME_FACTOR = 3 / 28
+  
+  static configWarn () {
+    
+  }
   
   /* 
     获取落键容器的尺寸信息(宽高)
@@ -27,23 +31,39 @@ export default class NoteUtils {
   static getValidSize () {
     if (!NoteUtils.validSize) {
       const gameConfig = Game.config.game
+      
+      const check = utils.obj.checkAll([
+        gameConfig.containerWidth,
+        gameConfig.containerHeight,
+        gameConfig.judgeHeight,
+        gameConfig.judgeAreaSize,
+        gameConfig.containerBorderWidth
+      ], (obj) => {
+        return utils.obj.isValidNum(obj) && obj >= 0
+      })
+      if (!check) {
+        throw new Error('Invalid size config!!')
+      }
+      
       const containerWidth = gameConfig.containerWidth
       const containerHeight = gameConfig.containerHeight
       const judgeHeight = gameConfig.judgeHeight
+      const judgeAreaSize = gameConfig.judgeAreaSize
       // 容器的高度在判定线以上
-      const tureHeight = containerHeight - judgeHeight
-      const trueWidth = containerWidth * (tureHeight / containerHeight)
+      const trueHeight = containerHeight - judgeHeight
+      const trueWidth = containerWidth * (trueHeight / containerHeight)
       // 有效宽度要排除边框
       const effWidth = trueWidth - 2 * gameConfig.containerBorderWidth
-      const effHeight = NoteUtils.AFFINE_FACTOR * tureHeight
+      const effHeight = NoteUtils.AFFINE_FACTOR * trueHeight
       // 计算仿射变换参照点
       const ratio = NoteUtils.AFFINE_FACTOR > 1 ?
         NoteUtils.AFFINE_FACTOR / (NoteUtils.AFFINE_FACTOR - 1) : 2
-      const affinePoint = new Point(0, tureHeight * ratio)
+      const affinePoint = new Point(0, trueHeight * ratio)
       
       NoteUtils.validSize = {
-        containerWidth, containerHeight, judgeHeight,
-        tureHeight, trueWidth,
+        containerWidth, containerHeight,
+        judgeHeight, judgeAreaSize,
+        trueHeight, trueWidth,
         effWidth, effHeight,
         affinePoint
       }
@@ -54,20 +74,48 @@ export default class NoteUtils {
   // 获取标准运动参数
   static getMoveData () {
     if (!NoteUtils.moveData) {
+      const gameConfig = Game.config.game
       // 获取尺寸信息
       const size = NoteUtils.getValidSize()
+      
+      const check = utils.obj.checkAll([
+        gameConfig.noteSpeed,
+        gameConfig.noteMoveTime,
+      ], (obj) => {
+        return utils.obj.isValidNum(obj) && obj >= 0
+      })
+      if (!check) {
+        throw new Error('Invalid move config!!')
+      }
+      
       // 速度设定
-      const keySpeed = gameConfig.keySpeed
+      const noteSpeed = gameConfig.noteSpeed
       // 由速度设定决定的真实下落时间
-      const tKeyMove = gameConfig.keyMoveTime * (1 - (keySpeed - 1) * NoteUtils.SPEED_TIME_FACTOR)
+      const tNoteMove = gameConfig.noteMoveTime * (1 - (noteSpeed - 1) * NoteUtils.SPEED_TIME_FACTOR)
       // 标准下落速度
-      const vStandard = size.effHeight / keyMoveTime
+      const vStandard = size.effHeight / tNoteMove
       
       NoteUtils.moveData = {
-        keySpeed, tKeyMove, vStandard
+        noteSpeed, tNoteMove, vStandard
       }
     }
     return NoteUtils.moveData
+  }
+  
+  // 获取时间延迟参数
+  static getDelayData () {
+    if (!NoteUtils.delayData) {
+      const gameConfig = Game.config.game
+      
+      const timeBeforeStart = utils.obj.isValidNum(gameConfig.timeBeforeStart) && gameConfig.timeBeforeStart >= 0 ?
+        gameConfig.timeBeforeStart : 3000
+      const startDelay = utils.obj.isValidNum(gameConfig.startDelay) ? gameConfig.startDelay : 0
+      
+      NoteUtils.delayData = {
+        timeBeforeStart, startDelay
+      }
+    }
+    return NoteUtils.delayData
   }
   
   // 获取资源图集的引用
@@ -108,6 +156,10 @@ export default class NoteUtils {
     const { effWidth } = NoteUtils.getValidSize()
     return rawX - effWidth / 2
   }
+  static eff2RawX (effX) {
+    const { effWidth } = NoteUtils.getValidSize()
+    return effX + effWidth / 2
+  }
   
   /*
     将原始Y坐标转换为有效Y坐标
@@ -115,7 +167,7 @@ export default class NoteUtils {
     有效Y坐标 - 以container的锚点anchor为原点，即判定线的中心点为原点，正方向向下
   */
   static raw2EffY (rawY) {
-    const { tureHeight } = NoteUtils.getValidSize()
-    return rawY - tureHeight
+    const { effHeight } = NoteUtils.getValidSize()
+    return rawY - effHeight
   }
 }
