@@ -12,14 +12,16 @@ import Tap from './Tap.js'
 import Slide from './Slide.js'
 import Hold from './Hold.js'
 
+import JudgeLevel from '../ui/JudgeLevel.js'
+import ComboShow from '../ui/ComboShow.js'
+
 // 解析谱面，游戏主控逻辑
 export default class NoteController {
-  constructor (data = {}, parent) {
+  constructor (data = {}, scene) {
     // 记录谱面信息
     this._data = data
     // 游戏场景对象
-    this.scene = parent
-    this.container = parent.noteContainer
+    this.scene = scene
     
     this._init()
   }
@@ -35,14 +37,18 @@ export default class NoteController {
   _init () {
     // 创建按键对象池
     this._initNotePool()
+    // 初始化资源等信息
+    this._initResources()
+    // 初始化UI
+    this._initUI()
     // 初始化按键判定
     this._initNoteJudge()
-    // 初始化按键配置、资源等信息
-    this._initNoteAnimations()
     // 初始化基本信息
     this._initBaseInfo()
     // 初始化谱面
     this._initNotes()
+    // 初始化声音
+    this._initSounds()
   }
   
   // 初始化按键对象池
@@ -58,19 +64,74 @@ export default class NoteController {
   _initNoteJudge () {
     this.catcher = new GestureCatcher(this)
     this.catcher.setCallback('onGestureUpdate', (e) => {
-      console.log('手势状态更新', e.state, e.id)
+      if (e.state !== 'hold') {
+        console.log('手势状态更新', e.state, e.id)
+      }
     })
   }
   
-  // 初始化按键配置、资源等信息
-  _initNoteAnimations () {
+  // 初始化资源等信息
+  _initResources () {
     const gameConfig = Game.config.game
     // 按键击打特效获取
     this.noteAnimations = gameConfig.judgeAnimationSrc.map((animation) => {
-      return this.scene.sheet.animations[animation]
+      return Game.sheet.animations[animation]
     })
   }
   
+  // 初始化UI
+  _initUI () {
+    this.ui= {}
+    // 初始化按键下落版面、容器框架
+    this._initNoteContainer()
+    
+    const { containerWidth } = NoteUtils.getValidSize()
+    
+    // 创建按键判定特效，
+    const judgeUI = new JudgeLevel()
+    this.ui.judge = judgeUI
+    
+    // 创建连击UI
+    const comboUI = new ComboShow()
+    this.ui.combo = comboUI
+    
+    // 创建计分UI
+    
+    // 创建标题UI
+  }
+  
+  // 初始化按键下落版面、容器框架
+  _initNoteContainer () {
+    const gameConfig = Game.config.game
+    const size = NoteUtils.getValidSize()
+    
+    // 背景封面图
+    
+    // 按键容器，内部所有内容都会进行仿射变换，注意原点在容器底部中心(要注意容器在判定线以上)
+    this.container = new PIXI.projection.Container2d()
+    this.container.position.set(Game.config.width / 2, size.trueHeight)
+    
+    // 容器皮肤
+    const containerSkin = new PIXI.projection.Sprite2d(Game.sheet.textures[gameConfig.containerSrc])
+    containerSkin.anchor.set(0.5, 1)
+    containerSkin.width = size.containerWidth * (size.trueHeight / size.containerHeight)
+    containerSkin.height = size.effHeight
+    
+    // 对容器做仿射变化，起到3D转2D的效果
+    this.container.proj.setAxisY(size.affinePoint, -1)
+    
+    // 加入底部判定线
+    const judgeLine = new Sprite(Game.sheet.textures[gameConfig.judgeSrc])
+    judgeLine.width = size.containerWidth
+    judgeLine.height = size.judgeHeight
+    judgeLine.anchor.set(0.5, 0)
+    judgeLine.position.set(Game.config.width / 2, size.trueHeight)
+    
+    // 装入舞台
+    this.scene.addChild(this.container)
+    this.scene.addChild(judgeLine)
+    this.container.addChild(containerSkin)
+  }
   
   // 初始化基本属性
   _initBaseInfo () {
@@ -87,6 +148,13 @@ export default class NoteController {
   // 初始化谱面
   _initNotes () {
     this.map = new MapData(this._data)
+  }
+  
+  // 初始化声音
+  _initSounds () {
+    const gameConfig = Game.config.game
+    this.bgm = Game.loader.resources[gameConfig.bgm].sound
+    this.bgm.singleInstance = true
   }
   
   // 设置游戏启动参数
@@ -107,17 +175,12 @@ export default class NoteController {
     
     // 游戏是否播放音频
     this._isMusicPlay = false
+    // 初始化统计UI
+    this.ui.judge.reset()
+    this.ui.combo.reset()
+    
     // 当前的得分
     this.score = 0
-    // 当前的连击数
-    this.combo = 0
-    // 上一次判定的状态
-    this.level = 0
-    // 上一次判定的offset
-    this.offset = 0
-    
-    // 同步到UI
-    this.syncJudgeUI()
   }
   
   // 游戏启动
@@ -134,19 +197,18 @@ export default class NoteController {
   pause () {
     Game.ticker.stop()
     this.catcher.stop()
-    Sound.pause('bgm')
+    this.bgm.pause()
   }
   
   // 游戏恢复
   resume () {
     Game.ticker.start()
     this.catcher.start()
-    Sound.resume('bgm')
+    this.bgm.resume()
   }
   
   // 游戏重开
   restart () {
-    Sound.stop('bgm')
     // 清空屏幕上的精灵
     this.judgedChildren.forEach((child) => {
       this.removeNote(child)
@@ -166,7 +228,7 @@ export default class NoteController {
   // 播放音乐
   playMusic () {
     this._isMusicPlay = true
-    Sound.play('bgm')
+    this.bgm.play()
   }
   
   // 每一帧的屏幕刷新
@@ -200,7 +262,7 @@ export default class NoteController {
     })
     
     // 进行一轮按键判定
-    this.catcher.judge(this.children)
+    this.catcher.judge()
   }
   
   // 添加一个按键
@@ -211,71 +273,46 @@ export default class NoteController {
   
   // 判定了一个按键
   judgeNote (note) {
-    // 待判定区删除此按键
-    this.children.delete(note)
-    // 按键从场景中移除
-    this.container.removeChild(note.sprite)
-    // 按键加入已判定区
-    this.judgedChildren.add(note)
+    // 删除按键
+    this.removeNote(note)
     
     // 播放打击特效
     this.tapAnimate(note.level, note.x)
+    // 播放判定文字特效
+    this.ui.judge.trigger(note.level, this.scene)
+    // 结算连击
+    this.ui.combo.trigger(this.scene)
+    console.log('判定', note.pos, note.level, note.offset, this.curTime)
   }
   
   // 移除一个按键
   removeNote (note) {
-    if (note.hasOwnProperty('level') && note.level >= 0) {
-      // 已判定的按键从已判定区中移除
-      this.judgedChildren.delete(note)
+    // 判断按键是否miss
+    const level = note.hasOwnProperty('level') && note.level >= 0 ? note.level : -1
+    if (level < 0) {
+      this.ui.judge.trigger(level, this.scene)
+      this.ui.combo.miss()
+      console.log('miss')
     }
-    else {
-      // 未判定的按键从待判定区以及场景中移除
-      this.children.delete(note)
-      this.container.removeChild(note.sprite)
-    }
-    // 释放parent指针
+    
+    this.children.delete(note)
+    this.container.removeChild(note.sprite)
     note.controller = null
   }
-  
-  // 判定成功结算
-  showJudge (note) {
-    if (!note.isComplete) {
-      this.level = note.hasOwnProperty('level') && note.level >= 0 ? note.level : -1
-      if (this.level < 0) {
-        this.combo = 0
-        console.log('miss')
-      }
-      else {
-        this.combo++
-        this.offset = note.offset      
-        // console.log('判定结算', note.pos, this.level, this.offset)
-      }
-      this.syncJudgeUI()
-      note.isComplete = true
-    }
-  }
-  
-  // 同步到判定UI
-  syncJudgeUI () {
-    Game.ui.$refs.judgeShow.judge(this.level, this.combo, this.offset)
-  }
-  
   // 播放按键击中特效
   tapAnimate (level, x) {
     if (level < 0) {
       return
     }
     
-    const { trueHeight } = NoteUtils.getValidSize()
+    const { trueHeight, containerWidth, effWidth, trueWidth } = NoteUtils.getValidSize()
     const gameConfig = Game.config.game
-    const animationIndex = level >= 1 ? level - 1 : 0
-    const animation = this.noteAnimations[animationIndex]
-    const animationSprite = this.notePool.AnimatedSprite.get(animationIndex, animation)
+    const animation = this.noteAnimations[level]
+    const animationSprite = this.notePool.AnimatedSprite.get(level, animation)
     animationSprite.loop = false
     animationSprite.animationSpeed = 0.3
     // 位置
-    animationSprite.anchor.set(0, 0.5)
-    console.log(x, NoteUtils.eff2RawX(x))
+    animationSprite.anchor.set(0.5, 0.5)
     animationSprite.x = NoteUtils.eff2RawX(x)
     animationSprite.y = trueHeight
     // 大小

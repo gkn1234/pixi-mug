@@ -30,6 +30,11 @@ export default {
   
   // 游戏设置
   game: {
+    // 音乐
+    bgm: '/bgm/a.mp3',
+    // 背景图片
+    bgImage: '',
+    
     // 资源图集
     resources: '/assets.json',
     // 音符面板的资源
@@ -47,7 +52,9 @@ export default {
         src: ['slide_0.png', 'slide_1.png', 'slide_2.png']
       },
       Hold: {
-        src: []
+        src: ['hold_0.png', 'hold_1.png', 'hold_2.png'],
+        splitSrc: ['hold_split_0.png', 'hold_split_1.png', 'hold_split_2.png'],
+        height: 15
       },
       Swipe: {
         src: []
@@ -78,11 +85,38 @@ export default {
     // 按键延迟时间，正数代表按键延后(音乐提前)，负数代表按键提前(音乐延后)。该参数只影响音乐播放时间，不应该影响按键逻辑！！！
     startDelay: 0,
     
-    // 判定区间，小P,Good,Bad,Miss，小于第一个数字的是大P，注意这个值其实是+-x，判定区间大小为此值的两倍
+    // 判定区间，小P,Good,Bad,Miss，小于第一个数字的是大P，注意这个值其实是+-x，判定区间大小为此值的两倍。不按照此规范赋值，程序将会发生不可预测的错误
     judgeTime: [25, 60, 100, 150],
-    // 判定得分比例，小P,Good,Bad,Miss，大P为100%
+    // 判定得分比例，小P,Good,Bad,Miss，大P为100%。不按照此规范赋值，程序将会发生不可预测的错误
     judgeScorePercent: [90, 60, 30, 0],
-    // 判定特效动画名称，大小P,Good,Bad
-    judgeAnimationSrc: ['perfect', 'good', 'bad'],
+    // 判定特效动画名称，大P，小P，Good，Bad。不按照此规范赋值，程序将会发生不可预测的错误
+    judgeAnimationSrc: ['perfect', 'perfect', 'good', 'bad'],
+    // 判定文字动画，大P，小P，Good，Bad。不按照此规范赋值，程序将会发生不可预测的错误
+    judgeTxtSrc: ['perfect0_txt.png', 'perfect1_txt.png', 'good_txt.png', 'bad_txt.png', 'miss_txt.png'],
+    // 判定文字的大小、位置
+    judgeTxtPos: {
+      // 高度
+      height: 60,
+      // 中心相对于面板中点的偏移量
+      centerX: 0,
+      // 中心相对于顶部的偏移量
+      top: 800
+    },
+    // 连击文字的大小、位置
+    comboTxtPos: {
+      // 尺寸
+      titleHeight: 50, 
+      numHeight: 100,
+      // 位置
+      right: 150,
+      top: 600
+    },
+    // 分数结算的大小、位置
+    scorePos: {
+      height: 60,
+      // x与y相对的原点为左上角
+      x: 10,
+      y: 10
+    }
   },
 }

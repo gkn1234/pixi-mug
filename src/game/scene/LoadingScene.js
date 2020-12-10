@@ -16,15 +16,18 @@ export default class LoadingScene extends Scene {
   }
   
   onShow () {
+    const gameConfig = Game.config.game
     Game.loader
-      .add('/assets.json')
-      .add('bgm', '/bgm/a.mp3')
-      .load(() => {
-        this.startGame()
-      })
+      .add(gameConfig.resources)
+      .add(gameConfig.bgm)
+      .load(this.startGame.bind(this))
   }
   
-  startGame () {
+  startGame (loader, resources) {
+    const gameConfig = Game.config.game
+    // 保存资源图集引用
+    Game.use('sheet', resources[gameConfig.resources].spritesheet)
+    
     setTimeout(() => {
       this.replace('GameScene', {}, {
         name: 'fadeOut'

@@ -3,7 +3,6 @@
     <canvas id="gameCanvas"></canvas>
     <game-mask ref="gameMask"></game-mask>
     <play-title ref="playTitle"></play-title>
-    <judge-show ref="judgeShow"></judge-show>
   </game-wrapper>
 </template>
 
@@ -15,7 +14,6 @@ import gameWrapper from '@/libs/ui/gameWrapper.vue'
 
 import playTitle from './ui/playTitle.vue'
 import gameMask from './ui/gameMask.vue'
-import judgeShow from './ui/judgeShow.vue'
 
 import config from './config.js'
 import gameStart from './main.js'
@@ -25,8 +23,7 @@ export default {
   components: {
     gameWrapper,
     playTitle,
-    gameMask,
-    judgeShow
+    gameMask
   },
   setup () {
     const options = reactive({

@@ -26,8 +26,6 @@ export default class Tap {
     this.sprite = this.controller.notePool.Sprite.get(this.textureName, this.texture)
     // 初始化按键位置信息
     this._initPos()
-    // 初始化变速
-    this.speedChangeIndex = 0
   }
   
   // 检查options和controller是否合理
@@ -71,75 +69,18 @@ export default class Tap {
     
     // 是否超出判定时间
     if (time - this.time > this.controller.missTime) {
-      // 超出判定时间时，结算并展示判定结果
-      console.log(time)
-      this.controller.showJudge(this)
+      // 移除按键
       this.controller.removeNote(this)
     }
   }
   
-  // 判断手势位置是否在判定区
-  isGesturePosIn (pos) {
-    const gameConfig = Game.config.game
-    
-    const top = gameConfig.keyDistanceY - gameConfig.judgeLineToBottom - gameConfig.judgeWidth / 2
-    const bottom = top + gameConfig.judgeWidth
-    // console.log(pos.x, pos.y, top, bottom, this.judgeLeftX, this.judgeRightX)
-    if (pos.y < top || pos.y > bottom) {
-      // Y轴判断位置
-      return false
-    }
-    if (pos.x < this.judgeLeftX || pos.x > this.judgeRightX) {
-      return false
-    }
-    return true
-  }
-  
-  // 获取判定等级
-  getJudgeLevel (offset) {
-    const gameConfig = Game.config.game
-    if (offset < 0) {
-      offset = offset * (-1)
-    }
-    const judgeTimeList = gameConfig.judgeTime
-    const len = judgeTimeList.length
-    for (let i = 0; i < len; i++) {
-      const min = i === 0 ? 0 : judgeTimeList[i - 1]
-      const max = judgeTimeList[i]
-      if (offset >= min && offset < max) {
-        return i
-      }
-    }
-    return -1
-  }
-  
   // 该按键被判定成功
   setJudge (level, offset) {
+    // 暂时保存判定信息
     this.level = level
     this.offset = offset
-    console.log('判定', this.pos, this.level, this.offset)
     
     // 通知控制器对按键成功判定进行处理
     this.controller.judgeNote(this)
-  }
-  
-  checkGesture (gesture) {
-    if (!gesture.tapDisabled && gesture.isDown()) {
-      if (this.isGesturePosIn(gesture.pos)) {
-        // 位置判定成功
-        const timeOffset = Math.floor(gesture.time - this.time)
-        const level = this.getJudgeLevel(timeOffset)
-        if (level >= 0) {
-          // 一旦手势成功判定单键，则将单键锁tapDisabled置为true，一个手势只能判定一次单键
-          gesture.tapDisabled = true
-          // 判定成功
-          this.setJudge(level, timeOffset)
-        }
-        return level
-      }
-    }
-    // 返回负数代表未判定
-    return -1
-    // console.log(gesture)
   }
 }

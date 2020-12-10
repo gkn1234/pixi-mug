@@ -13,22 +13,13 @@ export default class MapItem {
     this._init()
   }
   
-  // 合法的按键类型
-  static NOTE_TYPES = ['Tap', 'Slide', 'Hold', 'Swipe']
-  // 按键offset偏移到下一轨时的参数
-  static OFFSET_TO_NEXT = 4
-  // 最大与小轨道数
-  static MIN_KEY_NUM = 2
-  static MAX_KEY_NUM = 8
-  static DEFAULT_KEY_NUM = 4
-  
   // 检查输入数据的合法性
   _checkInit () {
     if (
       // 数据必须为对象类型
       !utils.obj.isObject(this._data) ||
       // 必须指定合法的type
-      MapItem.NOTE_TYPES.indexOf(this._data.type) < 0 ||
+      NoteUtils.NOTE_TYPES.indexOf(this._data.type) < 0 ||
       // 必须指定合法的time
       (!utils.obj.isValidNum(this._data.time) || this._data.time < 0)
     ) {
@@ -71,8 +62,8 @@ export default class MapItem {
   */
   _fixedPos (obj) {
     // 规范化key
-    obj.key = utils.obj.isValidNum(obj.key) && obj.key >= MapItem.MIN_KEY_NUM && obj.key <= MapItem.MAX_KEY_NUM ?
-      Math.floor(obj.key) : MapItem.DEFAULT_KEY_NUM
+    obj.key = utils.obj.isValidNum(obj.key) && obj.key >= NoteUtils.MIN_KEY_NUM && obj.key <= NoteUtils.MAX_KEY_NUM ?
+      Math.floor(obj.key) : NoteUtils.DEFAULT_KEY_NUM
     
     // 初步规范化pos
     obj.pos = utils.obj.isValidNum(obj.pos) && obj.pos >= 0 && obj.pos < obj.key ?
@@ -83,7 +74,7 @@ export default class MapItem {
       // 完全不合法的offset，此时给予默认值0
       obj.offset = 0
     }
-    else if (obj.offset >= 0 && obj.offset < MapItem.OFFSET_TO_NEXT) {
+    else if (obj.offset >= 0 && obj.offset < NoteUtils.OFFSET_TO_NEXT) {
       // offset偏移量正常，无需进一步调整
     }
     else {
@@ -96,9 +87,9 @@ export default class MapItem {
         obj.offset = max
       }
       // 大于OFFSET_TO_NEXT的offset要通过偏移pos的方式控制下来
-      const deltaPos = offset / MapItem.OFFSET_TO_NEXT
+      const deltaPos = offset / NoteUtils.OFFSET_TO_NEXT
       obj.pos = obj.pos + deltaPos
-      obj.offset = obj.offset % MapItem.OFFSET_TO_NEXT
+      obj.offset = obj.offset % NoteUtils.OFFSET_TO_NEXT
     }
     
     // 最后根据三大参数补充位置信息
@@ -107,11 +98,11 @@ export default class MapItem {
   
   // 以当下对象的key和pos，计算offset的临界值
   _getOffsetBorder (obj) {
-    const rightPos = MapItem.MAX_KEY_NUM - obj.pos
+    const rightPos = NoteUtils.MAX_KEY_NUM - obj.pos
     const leftPos = obj.pos
     return {
-      min: (-1) * leftPos * MapItem.OFFSET_TO_NEXT,
-      max: rightPos * MapItem.OFFSET_TO_NEXT
+      min: (-1) * leftPos * NoteUtils.OFFSET_TO_NEXT,
+      max: rightPos * NoteUtils.OFFSET_TO_NEXT
     }
   }
   
@@ -121,12 +112,13 @@ export default class MapItem {
   */
   _getGeo (obj) {
     // 获取有效宽度
-    const { effWidth } = NoteUtils.getValidSize()
+    const { effWidth, containerWidth } = NoteUtils.getValidSize()
     
     // 按键宽度
     const width = effWidth / obj.key
-    // 原始坐标，以底部左侧边框为原点
-    const rawX = obj.pos * width + obj.offset * (width / MapItem.OFFSET_TO_NEXT) + (width * 0.5)
+    // 原始坐标，以游戏区域最左侧为原点
+    const offsetX = (containerWidth - effWidth) / 2
+    const rawX = obj.pos * width + obj.offset * (width / NoteUtils.OFFSET_TO_NEXT) + (width * 0.5) + offsetX
     // 转换为坐标系内的有效坐标，以判定线中点为原点
     const x = NoteUtils.raw2EffX(rawX)
     
@@ -145,7 +137,7 @@ export default class MapItem {
     this.style = utils.obj.isValidNum(this.style) && this.style >= 0 && this.style < noteSrc.length ? Math.floor(options.style) : 0
     this.textureName = noteSrc[this.style]
     
-    const sheet = NoteUtils.getSheet()
+    const sheet = Game.sheet
     this.texture = sheet.textures[this.textureName]
     
     if (noteUnique.hasOwnProperty('height')) {
@@ -154,7 +146,7 @@ export default class MapItem {
     }
   }
   
-  // 解析变速，确认 start(开始下落时间) / speedSections(变速区间)
+  // 解析变速，计算开始下落的时间
   _resolveSpeedChange () {
     const gameConfig = Game.config.game
     const { tNoteMove, vStandard } = NoteUtils.getMoveData()

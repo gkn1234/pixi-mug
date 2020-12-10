@@ -6,7 +6,15 @@ import Game from '@/libs/Game.js'
 // 核心逻辑辅助工具类
 export default class NoteUtils {
   constructor () {}
-    
+  
+  // 合法的按键类型
+  static NOTE_TYPES = ['Tap', 'Slide', 'Hold', 'Swipe']
+  // 按键offset偏移到下一轨时的参数
+  static OFFSET_TO_NEXT = 4
+  // 最大与小轨道数
+  static MIN_KEY_NUM = 2
+  static MAX_KEY_NUM = 8
+  static DEFAULT_KEY_NUM = 4
   // 对下落容器进行仿射变换的倍率，这样顶部宽度正好是底部宽度的1 / 5
   // 仿射变换的原理没有搞清楚，现在是摸索API试出来的效果，以后一定要好好学计算机图形学
   static AFFINE_FACTOR = 5
@@ -118,15 +126,6 @@ export default class NoteUtils {
     return NoteUtils.delayData
   }
   
-  // 获取资源图集的引用
-  static getSheet () {
-    if (!NoteUtils.sheet) {
-      const gameConfig = Game.config.game
-      NoteUtils.sheet = Game.loader.resources[gameConfig.resources].spritesheet
-    }
-    return NoteUtils.sheet
-  }
-  
   // 获取按键独特配置
   static getNoteUnique (type) {
     if (!NoteUtils.noteUnique) {
@@ -149,25 +148,83 @@ export default class NoteUtils {
   
   /*
     将原始X坐标转换为有效X坐标
-    原始X坐标 - X轴以有效落键区域的最左侧为原点，向右为正方向
+    原始X坐标 - X轴以游戏区域最左侧为原点，向右为正方向
     有效X坐标 - 以container的锚点anchor为原点，即判定线的中心点为原点，正方向向右
   */
   static raw2EffX (rawX) {
-    const { effWidth } = NoteUtils.getValidSize()
-    return rawX - effWidth / 2
+    const { containerWidth } = NoteUtils.getValidSize()
+    return rawX - containerWidth / 2
   }
   static eff2RawX (effX) {
-    const { effWidth } = NoteUtils.getValidSize()
-    return effX + effWidth / 2
+    const { containerWidth } = NoteUtils.getValidSize()
+    return effX + containerWidth / 2
   }
   
   /*
     将原始Y坐标转换为有效Y坐标
-    原始Y坐标 - 以顶部为原点，正方向向下
+    原始Y坐标 - 以游戏区域顶部为原点，正方向向下
     有效Y坐标 - 以container的锚点anchor为原点，即判定线的中心点为原点，正方向向下
   */
   static raw2EffY (rawY) {
     const { effHeight } = NoteUtils.getValidSize()
     return rawY - effHeight
+  }
+  static eff2RawY (effY) {
+    const { effHeight } = NoteUtils.getValidSize()
+    return effY + effHeight
+  }
+  
+  /*
+    根据top/bottom/left/right，解析定位坐标
+  */
+  static resolvePos (obj) {
+    const { containerWidth, containerHeight } = NoteUtils.getValidSize()
+    const POS_KEYS = ['top', 'bottom', 'left', 'right', 'centerX', 'centerY']
+    let res = {
+      x: 0,
+      y: 0
+    }
+    
+    for (let key in obj) {
+      const index = POS_KEYS.indexOf(key)
+      if (index < 0) {
+        continue
+      }
+      if (!utils.obj.isValidNum(obj[key])) {
+        continue
+      }
+      
+      switch (key) {
+        case 'top':
+          res.y = obj.top
+          break
+        case 'bottom':
+          res.y = containerHeight - obj.bottom
+          break
+        case 'left':
+          res.x = obj.left
+          break
+        case 'right':
+          res.x = containerWidth - obj.right
+          break
+        case 'centerX':
+          res.x = containerWidth / 2 + obj.centerX
+          break
+        case 'centerY':
+          res.y = containerHeight / 2 + obj.centerY
+          break
+        default:
+      }
+    }
+    
+    return res
+  }
+  
+  // 获取X分音符的时间长度
+  getNoteDuration (divide = 8) {
+    // BPM的意义是一分钟4分音符的数量，先计算出4分音符的长度
+    const baseDuration = 60 * 1000 / this.bpm
+    const ratio = 4 / divide
+    return baseDuration * ratio
   }
 }

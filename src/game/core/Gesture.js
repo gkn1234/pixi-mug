@@ -2,7 +2,6 @@ import utils from '@/libs/utils/index.js'
 import Game from '@/libs/Game.js'
 
 import NoteUtils from './NoteUtils.js'
-import Tap from './Tap.js'
 
 export default class Gesture {
   constructor (id, catcher) {
@@ -10,10 +9,19 @@ export default class Gesture {
     // 要保存父对象
     this.catcher = catcher
     
-    // 计算手势保持的限定时间，限定时间为歌曲BPM下的8分音符长度(为了完全覆盖8分音符，实际上是7分音符的长度)
+    // 为了防止Slide的判定彻底变成接水果，需要计算手势保持的限定时间，限定时间为歌曲BPM下的8分音符长度(为了完全覆盖8分音符，实际上是7分音符的长度)
+    // 超过这个长度，手势便无法连续判断Slide音符
     this.limitTime = this.catcher.getLimitTime()
     // 计算miss时间
     this.missTime = this.catcher.getMissTime()
+    
+    // 上一次判定到按键的时间
+    this.lastJudgeTime = this.catcher.getTime()
+    // Tap手势判定信号，为true时，才允许判定该手势
+    this.tapEnabled = true
+    // Tap以外的按键类型是否能被down以外的手势判定
+    this.othersEnabled = false
+    
   }
   
   // 事件状态
@@ -41,14 +49,12 @@ export default class Gesture {
     this.startPos = this._getPos(e)
     // 当前激活的位置即为down的位置
     this.pos = this.startPos
-    this.movePos = this.pos
     // 当前激活时的时间
     this.time = this.startTime
+    // 记录临时位置，辅助判断move事件
+    this.movePos = this.pos
     // 复杂的事件对象
     this.detail = e
-    
-    // down事件必须成功判定一次后，会赋予activeTime属性，之后才能转为move状态
-    this.activeTime === null
     
     // 触发手势状态更新回调
     this.catcher.onGestrueUpdate(this)
@@ -56,133 +62,204 @@ export default class Gesture {
   
   // move事件
   move (e) {
-    if (!this.hasOwnProperty('activeTime') || this.activeTime === null) {
-      // down状态如果不能成功判定，就没有activeTime属性，也无法转为move或者up
-      return
-    }
     if (this.state === Gesture.STATE.up) {
       // 也不可能从up状态退回move状态
       return
     }
     
-    if (this._checkMoveActive()) {
-      const gameConfig = Game.config.game
-      const { effWidth } = NoteUtils.getValidSize
+    const gameConfig = Game.config.game
+    const { effWidth } = NoteUtils.getValidSize()
+    
+    this.pos = this._getPos(e)
+    const deltaX = Math.abs(this.pos.x - this.movePos.x)
+    const minMoveX = (effWidth / NoteUtils.MAX_KEY_NUM) * 0.5
+    if (deltaX >= minMoveX) {
+      // 在X轴方向必须至少移动半个8K轨道的距离，才算做一次move事件，距离不够的，依然算作hold事件
+      this.state = Gesture.STATE.move
+      this.moveTime = this.catcher.getTime()
+      this.movePos = this.pos
+      this.time = this.moveTime
+      this.detail = e
       
-      this.pos = this._getPos(e)
-      let deltaX = this.pos.x - this.movePos.x
-      deltaX = deltaX < 0 ? deltaX * (-1) : deltaX
-      if (deltaX >= (effWidth / NoteUtils.MAX_KEY_NUM) * 0.5) {
-        console.log(this.pos.x, this.movePos.x, deltaX)
-        // 在X轴方向必须至少移动半个8K轨道的距离，才算做一次move事件
-        // 距离不够的，依然算作hold事件
-        this.state = Gesture.STATE.move
-        this.moveTime = this.catcher.getTime()
-        this.movePos = this.pos
-        this.time = this.moveTime
-        this.detail = e
-        
-        this.catcher.onGestrueUpdate(this)        
-      }
+      this.catcher.onGestrueUpdate(this)        
     }
   }
   
   // up事件
-  up (e) {
-    if (!this.hasOwnProperty('activeTime') || this.activeTime === null) {
-      // down状态如果不能成功判定，就没有activeTime属性，也无法转为move或者up
-      return
-    }
+  up (e) {    
+    // 更新move事件
+    this.state = Gesture.STATE.up
+    // 记录手势结束时间
+    this.endTime = this.catcher.getTime()
+    // 记录结束时的位置信息
+    this.endPos = this._getPos(e)
     
-    if (this._checkMoveActive()) {
-      // 更新move事件
-      this.state = Gesture.STATE.up
-      // 记录手势结束时间
-      this.endTime = this.catcher.getTime()
-      // 记录结束时的位置信息
-      this.endPos = this._getPos(e)
-      
-      this.pos = this.endPos
-      this.time = this.endTime
-      this.detail = e
-      
-      this.catcher.onGestrueUpdate(this)
-    }
+    this.pos = this.endPos
+    this.time = this.endTime
+    this.detail = e
+    
+    this.catcher.onGestrueUpdate(this)
   }
   
-  // move状态下则要检查当前时间是否超限，限定时间为歌曲BPM下的8分音符
-  _checkMoveActive () {
-    // 当前时间减去activeTime得到超限判断时间
-    // 超限判断时间如果超过了限定时间，则move无法保持，长按手势将失效，函数返回false
-    // console.log('检查', this.catcher.getTime(), this.activeTime, this.limitTime)
-    if (this.catcher.getTime() - this.activeTime > this.limitTime) {
-      this.catcher.removeGesture(this)
-      return false
-    }
-    return true
-  }
-  
-  // 每一帧都会触发，进行一轮判定后，更新手势状态。isJudge代表是否判定成功
-  judgeUpdate (isJudge = false) {
-    // 获取当前时间
-    const curTime = this.catcher.getTime()
-    
+  // 转为hold状态
+  hold () {
     if (this.state === Gesture.STATE.up) {
-      // up事件是事件的末尾，手势未判定将直接结束
-      this.catcher.removeGesture(this)
+      // 也不可能从up状态退回hold状态
       return
-    }
-    
-    if (!isJudge) {
-      // 未判定到按键
-      if (this.state === Gesture.STATE.down) {
-        if (curTime - this.time > this.missTime) {
-          // 一旦当前时间再超过判定miss的时间，代表判定彻底失败就移除
-          this.catcher.removeGesture(this)
-          return
-        }
-      }
-      else {
-        // move和hold状态下则要检查当前时间是否超限。并根据结果自动处理
-        const sign = this._checkMoveActive()
-        if (!sign) {
-          // 超限时移除手势，直接返回
-          return
-        }
-      }      
-    }
-    else {
-      // 判定成功时，更新activeTime属性，延长手势的存活时间
-      this.activeTime = curTime
     }
     
     const lastState = this.state
     if (lastState !== Gesture.STATE.hold) {
       // 完成判定后，从其他状态转为hold
       this.state = Gesture.STATE.hold
+      this.time = this.catcher.getTime()
+      
       // 触发手势状态更新回调
       this.catcher.onGestrueUpdate(this)      
     }
   }
   
+  // 手势移出了判定区
+  out (e) {
+    // 删除手势
+    this.catcher.removeGesture(this)
+  }
+  
+  // 对按键进行判定
+  judge (note) {
+    let res = -1
+    switch (note.type) {
+      case NoteUtils.NOTE_TYPES[0]:
+        res = this.judgeTap(note)
+        break
+      case NoteUtils.NOTE_TYPES[1]:
+        res = this.judgeSlide(note)
+        break
+      case NoteUtils.NOTE_TYPES[2]:
+        break
+      case NoteUtils.NOTE_TYPES[3]:
+        break
+    }
+    
+    if (res >= 0) {
+      // 判定成功，更新判定时间
+      this.lastJudgeTime = this.catcher.getTime()
+    }
+    
+    return res
+  }
+  
+  judgeTap (note) {
+    if (
+      this.tapEnabled && 
+      this.state === Gesture.STATE.down &&
+      this.isValidNotePos(note)
+    ) {
+      const timeOffset = Math.floor(this.getJudgeTime() - note.time)
+      const level = this.getJudgeLevel(timeOffset)
+      if (level >= 0) {
+        // 一个手势只能判定一次单键
+        this.tapEnabled = false
+        // 解放手势，允许判定Tap以外的其他类型按键被down以外的手势判定
+        this.othersEnabled = true
+        // 判定成功
+        note.setJudge(level, timeOffset)
+      }
+      return level
+    }
+    // 返回负数代表未判定
+    return -1
+  }
+  
+  judgeSlide (note) {
+    if (!this.isValidNotePos(note)) {
+      return -1
+    }
+    
+    const timeOffset = Math.floor(this.getJudgeTime() - note.time)
+    const level = this.getJudgeLevel(timeOffset)
+    
+    if (
+      // down手势为一切开端，必然可以判定滑键Slide，但是会区分判定等级
+      (this.state === Gesture.STATE.down && level >= 0) ||
+      // 手势必须被解放，move才能判定滑键，会区分判定等级
+      (this.othersEnabled && this.state === Gesture.STATE.move && level >= 0) ||
+      // hold 判定滑键，只有完美判定
+      (this.othersEnabled && this.state === Gesture.STATE.hold && level == 0)
+    ) {
+      // 如果第一次交给了滑键，则也不能再判定单键
+      this.tapEnabled = false
+      // 解放手势，允许判定Tap以外的其他类型按键被down以外的手势判定
+      this.othersEnabled = true
+      // 判定成功
+      note.setJudge(level, timeOffset)
+    }
+    
+    return level
+  }
+  
+  // 更新手势状态，一般在判定judge完成后调用
+  update () {
+    const curTime = this.catcher.getTime()
+    
+    if (this.state === Gesture.STATE.up) {
+      // up事件是事件的末尾，手势将被移除
+      this.catcher.removeGesture(this)
+      return
+    }
+    
+    if (this.othersEnabled && curTime - this.lastJudgeTime > this.limitTime) {
+      // 对于其他类型的事件，检验判定时间
+      // 如果过长时间没有判定到按键，则取消手势的解放状态，限制滑键和长按判定，避免变成接水果游戏
+      this.othersEnabled = false
+    }
+    
+    // 事件转为hold
+    this.hold()
+  }
+  
+  // 获取判定等级
+  getJudgeLevel (offset) {
+    const gameConfig = Game.config.game
+    if (offset < 0) {
+      offset = offset * (-1)
+    }
+    const judgeTimeList = gameConfig.judgeTime
+    const len = judgeTimeList.length
+    for (let i = 0; i < len; i++) {
+      const min = i === 0 ? 0 : judgeTimeList[i - 1]
+      const max = judgeTimeList[i]
+      if (offset >= min && offset < max) {
+        return i
+      }
+    }
+    return -1
+  }
+  
+  // 判断手势位置是否能判定到按键
+  isValidNotePos (note) {
+    const gameConfig = Game.config.game
+    const { trueHeight, judgeAreaSize } = NoteUtils.getValidSize()
+    const pos = this.pos
+    const top = trueHeight - judgeAreaSize / 2
+    const bottom = top + judgeAreaSize
+    const y = NoteUtils.eff2RawY(pos.y)
+    if (y < top || y > bottom) {
+      // Y轴判断位置
+      return false
+    }
+    const left = note.x - note.width / 2
+    const right = note.x + note.width / 2
+    // console.log(pos.x, pos.y, y, top, bottom, left, right)
+    if (pos.x < left || pos.x > right) {
+      return false
+    }
+    return true
+  }
+  
   // 获取判定时间
   getJudgeTime () {
     // hold状态下的判定时间就是当前时间，其他状态下，以状态变化时的瞬时时间为准
-    return this.state === GestureCatcher.STATE.hold ? this.catcher.getTime() : this.time
-  }
-  
-  // 手势是否为hold
-  isHold () {
-    return this.state === Gesture.STATE.hold
-  }
-  
-  // 手势是否为down
-  isDown () {
-    return this.state === Gesture.STATE.down
-  }
-  
-  // 手势是否为move
-  isMove () {
-    return this.state === Gesture.STATE.move
+    return this.state === Gesture.STATE.hold ? this.catcher.getTime() : this.time
   }
 }

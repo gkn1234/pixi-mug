@@ -42,15 +42,11 @@ export default class GestureCatcher {
     judgeArea.on('pointerdown', this._downHandler, this)
     judgeArea.on('pointermove', this._moveHandler, this)
     judgeArea.on('pointerup', this._upHandler, this)
+    judgeArea.on('pointerout', this._outHandler, this)
   }
   
   // pointerdown回调
   _downHandler (e) {
-    if (this.pauseSignal || this.getTime() === null) {
-      // 暂停状态下，暂时不处理事件
-      return
-    }
-    
     const curTime = this.controller.curTime
     // down为一个手势的开始，创建一个手势对象
     let gesture = new Gesture(e.data.identifier, this)
@@ -62,11 +58,6 @@ export default class GestureCatcher {
   
   // pointermove回调
   _moveHandler (e) {
-    if (this.pauseSignal || this.getTime() === null) {
-      // 暂停状态下，暂时不处理事件
-      return
-    }
-    
     const gesture = this.gestureMap.get(e.data.identifier)
     if (!gesture) {
       return
@@ -76,18 +67,21 @@ export default class GestureCatcher {
   }
   
   // pointerup回调
-  _upHandler (e) {
-    if (this.pauseSignal || this.getTime() === null) {
-      // 暂停状态下，暂时不处理事件
-      return
-    }
-    
+  _upHandler (e) { 
     const gesture = this.gestureMap.get(e.data.identifier)
     if (!gesture) {
       return
     }
     
     gesture.up(e)
+  }
+  
+  _outHandler (e) {
+    const gesture = this.gestureMap.get(e.data.identifier)
+    if (!gesture) {
+      return
+    }
+    gesture.out(e)
   }
   
   // 停止手势判定
@@ -134,21 +128,20 @@ export default class GestureCatcher {
   }
   
   // 对按键进行判定
-  judge (notes) {
+  judge () {
+    const notes = this.controller.children
     // 每一个手势对象都对按键进行判定
     // console.log(this.getTime(), this.gestureMap, notes.values().next().value)
     this.gestureMap.forEach((gesture) => {
-      let isSuccess = false
       for (let note of notes) {
-        const res = note.checkGesture(gesture)
+        const res = gesture.judge(note)
         if (res >= 0) {
-          // 判定到一个按键后，就立即退出，避免一个手势判定多个按键
-          isSuccess = true
+          // 判定到一个按键后，就立即退出，避免一个手势在一帧内判定多个按键
           break
         }
       }
       // 根据本轮判定结果，更新本手势的状态
-      gesture.judgeUpdate(isSuccess)
+      gesture.update()
     })
   }
 }

@@ -16,14 +16,6 @@ export default class GameScene extends Scene {
     const config = Game.config
     const gameConfig = Game.config.game
     
-    // 获取游戏资源
-    this.sheet = Game.loader.resources['/assets.json'].spritesheet
-    console.log(this.sheet)
-    
-    // 初始化谱面框架
-    this.initNoteContainer()
-    
-    
     // 读取谱面
     this.noteData = {
       notes: [
@@ -36,7 +28,7 @@ export default class GameScene extends Scene {
         { time: 2422, type: 'Tap', key: 4, pos: 0, offset: 2 },
         { time: 2599, type: 'Tap', key: 4, pos: 1, offset: 1 },
         { time: 2776, type: 'Tap', key: 4, pos: 1, offset: 2 },
-        /*{ time: 3000, type: 'Slide', key: 8, pos: 0, offset: 0 },
+        { time: 3000, type: 'Slide', key: 8, pos: 0, offset: 0 },
         { time: 3100, type: 'Slide', key: 8, pos: 1, offset: 0 },
         { time: 3200, type: 'Slide', key: 8, pos: 2, offset: 0 },
         { time: 3300, type: 'Slide', key: 8, pos: 3, offset: 0 },
@@ -57,7 +49,7 @@ export default class GameScene extends Scene {
         { time: 4800, type: 'Slide', key: 8, pos: 4, offset: 0 },
         { time: 4900, type: 'Slide', key: 8, pos: 5, offset: 0 },
         { time: 5000, type: 'Slide', key: 8, pos: 6, offset: 0 },
-        { time: 5100, type: 'Slide', key: 8, pos: 7, offset: 0 },*/
+        { time: 5100, type: 'Slide', key: 8, pos: 7, offset: 0 },
         // { time: 3000, type: 'Hold', duration: 1000, key: 4, pos: 0, offset: 0, end: { key: 4, pos: 1, offset: 2 } },
         /*{ time: 3000, type: 'Tap', key: 4, pos: 1, offset: 0 },
         { time: 3100, type: 'Tap', key: 4, pos: 1, offset: 0 },
@@ -134,47 +126,26 @@ export default class GameScene extends Scene {
     // 初始化游戏控制器
     this.controller = new NoteController(this.noteData, this)
     console.log(this.controller)
-  }
-  
-  // 初始化容器
-  initNoteContainer () {
-    const size = NoteUtils.getValidSize()
+     
+    const s = new Sprite(Game.sheet.textures['hold_0.png'])
+    s.anchor.set(0.5, 1)
+    s.width = 200
+    s.height = 1000
+    s.position.set(960, 1080)
+    s.skew.x = -Math.PI / 6
+    this.addChild(s)
     
-    // 背景封面图
-    
-    // 按键容器，内部所有内容都会进行仿射变换，注意原点在容器底部中心(要注意容器在判定线以上)
-    this.noteContainer = new PIXI.projection.Container2d()
-    this.noteContainer.position.set(Game.config.width / 2, size.trueHeight)
-    
-    // 容器皮肤
-    const containerSkin = new PIXI.projection.Sprite2d(this.sheet.textures['board.png'])
-    containerSkin.anchor.set(0.5, 1)
-    containerSkin.width = size.containerWidth * (size.trueHeight / size.containerHeight)
-    containerSkin.height = size.effHeight
-    
-    // 对容器做仿射变化，起到3D转2D的效果
-    this.noteContainer.proj.setAxisY(size.affinePoint, -1)
-    
-    // 加入底部判定线
-    const judgeLine = new Sprite(this.sheet.textures['judge.png'])
-    judgeLine.width = size.containerWidth
-    judgeLine.height = size.judgeHeight
-    judgeLine.anchor.set(0.5, 0)
-    judgeLine.position.set(Game.config.width / 2, size.trueHeight)
-    
-    // 装入舞台
-    this.addChild(this.noteContainer)
-    this.addChild(judgeLine)
-    this.noteContainer.addChild(containerSkin)
+    const n = new Sprite(Game.sheet.textures['hold_1.png'])
+    n.anchor.set(0.5, 1)
+    n.width = 200
+    n.height = 1000
+    n.position.set(960, 1080)
+    this.addChild(n)
   }
   
   onOpen () {
     // 显示标题
-    Game.ui.$refs.playTitle.show()
-    
-    // 绑定控制器和UI
-    Game.ui.$refs.judgeShow.show()
-    
+    Game.ui.$refs.playTitle.show()    
     // 启动遮罩层
     Game.ui.$refs.gameMask.show()
     // 绑定游戏全屏事件
