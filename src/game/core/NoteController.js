@@ -282,7 +282,10 @@ export default class NoteController {
   // miss判定
   judgeMiss (note) {
     // 判断按键是否miss
-    const level = note.hasOwnProperty('level') && note.level >= 0 ? note.level : -1
+    const level = note.hasOwnProperty('l
+    
+    
+    evel') && note.level >= 0 ? note.level : -1
     if (level < 0) {
       this.ui.judge.trigger(level, this.scene)
       this.ui.combo.miss()
