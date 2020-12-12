@@ -50,7 +50,7 @@ export default class GameScene extends Scene {
         { time: 4900, type: 'Slide', key: 8, pos: 5, offset: 0 },
         { time: 5000, type: 'Slide', key: 8, pos: 6, offset: 0 },
         { time: 5100, type: 'Slide', key: 8, pos: 7, offset: 0 },
-        // { time: 3000, type: 'Hold', duration: 1000, key: 4, pos: 0, offset: 0, end: { key: 4, pos: 1, offset: 2 } },
+        { time: 3000, type: 'Hold', duration: 1000, key: 4, pos: 0, offset: 0, end: { pos: 1, offset: 2 } },
         /*{ time: 3000, type: 'Tap', key: 4, pos: 1, offset: 0 },
         { time: 3100, type: 'Tap', key: 4, pos: 1, offset: 0 },
         { time: 3200, type: 'Tap', key: 4, pos: 1, offset: 0 },

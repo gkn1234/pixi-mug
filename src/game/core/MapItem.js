@@ -44,10 +44,19 @@ export default class MapItem {
     
     // 获取时间
     this.time = this._data.time
+    // 获取持续时间
+    this.duration = utils.obj.isValidNum(this._data.duration) && this._data.duration > 0 ? this._data.duration : 0
     // 先将输入数据拷贝给对象
     Object.assign(this, this._data)
+    
     // 对于 key/pos/offset 三个轨道位置参数进行修正，并计算出位置信息width/x
     this._fixedPos(this)
+    if (this.end && utils.obj.isObject(this.end)) {
+      // 补充end对象，Hold键型具有end对象
+      this.end.key = this.key
+      this._fixedPos(this.end)
+    }
+    
     // 获取独特的设置，如高度，资源纹理等，见config.game中的noteUnique字段。计算出 texture/height
     this._initUnique()
     // 解析变速信息
@@ -140,68 +149,77 @@ export default class MapItem {
     const sheet = Game.sheet
     this.texture = sheet.textures[this.textureName]
     
+    if (noteUnique.hasOwnProperty('splitSrc')) {
+      // Hold专属，长条头部尾部的分节按键
+      const splitSrc = noteUnique.splitSrc
+      this.splitTextureName = splitSrc[this.style]
+      this.splitTexture = sheet.textures[this.splitTextureName]
+    }
+    
     if (noteUnique.hasOwnProperty('height')) {
       // 对Tap、Swipe、Slide来说非常重要的高度
       this.height = noteUnique.height
     }
   }
   
-  // 解析变速，计算开始下落的时间
+  // 解析变速，计算初始高度和开始下落的时间
   _resolveSpeedChange () {
     const gameConfig = Game.config.game
     const { tNoteMove, vStandard } = NoteUtils.getMoveData()
     const { effHeight } = NoteUtils.getValidSize()
     const { timeBeforeStart } = NoteUtils.getDelayData()
-    const startTime = timeBeforeStart * (-1)
     const speedChanges = this._data.globalSpeedChanges
     // 初始化变速区间，构建一个从游戏开始到按键落下的时间序列
-    let speedSections = [this._createSpeedSection(startTime, this.time, 1)]
+    const startTime = timeBeforeStart * (-1)
+    const endTime = this.time + this.duration
+    let speedSections = [this._createSpeedSection(startTime, endTime, 1)]
     
-    // 一般情况下，按键从顶点下落
-    this.y = NoteUtils.raw2EffY(0)
+    // 初始化y - 按键初始高度
+    this.y = null
+    // 初始化start - 按键下落时间
+    this.start = null
+    // 初始化Hold的长度
+    this.distance = null
     
     let len = speedChanges.length
     for (let i = 0; i < len; i++) {
       const speedChange = speedChanges[i]
-      if (speedChange.start >= this.time) {
-        // 遇到靠后的变速，此时按键已经落到判定线，后续变速也再无影响
-        if (i === 0) {
-          // 第一个变速就过于靠后，则可以直接认为按键不受变速影响
-          this.start = this.time - tNoteMove
-          return
-        }
-        break
-      }
-      if (speedChange.end <= this.time - tNoteMove) {
-        // 遇到及其靠前的变速，需要判断其后面的变速
-        if (i + 1 === len || (speedChanges[i + 1].start >= this.time)) {
-          // 下一个变速过于靠后或者不存在，于是按键不受变速影响，会均匀到达底部
-          this.start = this.time - tNoteMove
-          return
-        }
-      }
-      // 无法断定变速影响，则先切割变速区间，待下一步处理
+      // 切割变速区间
       this._cutSpeedSections(speedSections, speedChange)
     }
     
-    len =  speedSections.length
+    const startIndex = this._findSpeedSectionIndex(speedSections, this.time)
+    const endIndex = speedSections.length - 1
     let s = 0
     // 根据relativeSpeedChange中的变速对象，计算按键从顶部出现的准确时间
-    for (let i = len - 1; i >= 0; i--) {
+    for (let i = startIndex; i >= 0; i--) {
       const section = speedSections[i]
       const v = section.speed * vStandard
-      const t = section.end - section.start
+      const t = i === startIndex ? this.time - section.start : section.end - section.start
       if (s + v * t >= effHeight) {
-        // 距离超限，说明下落点就在这一段
+        // 距离超限，说明下落点就在这一段，按键可以从顶点下落
         const tLeft = (effHeight - s) / v
         this.start = section.end - tLeft
-        return
+        this.y = NoteUtils.raw2EffY(0)
+        break
       }
       s = s + v * t
     }
-    // 追溯到源头都无法走完路程，说明开头的起始位置不为0
-    this.y = NoteUtils.raw2EffY(effHeight - s)
-    this.start = startTime
+    if (this.y === null || this.start === null) {
+      // 若追溯到源头都无法走完路程，说明开头的起始位置不为0
+      this.y = NoteUtils.raw2EffY(effHeight - s)
+      this.start = startTime      
+    }
+    
+    // 迭代计算Hold的长度
+    let d = 0
+    for (let i = endIndex; i >= startIndex; i--) {
+      const section = speedSections[i]
+      const v = section.speed * vStandard
+      const t = i === startIndex ? section.end - this.time : section.end - section.start
+      d = d + v * t
+    }
+    this.distance = d
   }
   
   // 创建变速区间
@@ -211,8 +229,8 @@ export default class MapItem {
   
   // 给定变速区间和时间，定位变速对象
   _findSpeedSectionIndex (speedSections = [], time) {
-    const index = speedSections.find((obj) => {
-      return obj.start <= time && time <= obj.end
+    const index = speedSections.findIndex((obj) => {
+      return obj.start < time && time <= obj.end
     })
     return index
   }
@@ -228,37 +246,20 @@ export default class MapItem {
       return
     }
 
-    if (speedChange.start === section.start) {
-      if (speedChange.end >= section.end) {
-        // 情况1  左边界重合，右边界重合或超出，实现完全覆盖
-        section.speed = speedChange.speed
-        return
-      }
-      else {
-        // 情况2 左边界重合，右边界不够
-        const tail = section.end
-        section.end = speedChange.end
-        section.speed = speedChange.speed
-        speedSections.splice(index + 1, 0, this._createSpeedSection(speedChange.end, tail, 1))
-        return
-      }
+    if (speedChange.end >= section.end) {
+      // 情况1 左边界不够，右边界超出
+      const tail = section.end
+      section.end = speedChange.start
+      speedSections.splice(index + 1, 0, this._createSpeedSection(speedChange.start, tail, speedChange.speed))
+      return
     }
     else {
-      if (speedChange.end >= section.end) {
-        // 情况3 左边界不够，右边界超出
-        const tail = section.end
-        section.end = speedChange.start
-        speedSections.splice(index + 1, 0, this._createSpeedSection(speedChange.start, tail, speedChange.speed))
-        return
-      }
-      else {
-        // 情况4 >= 左边界不够，右边界也不够
-        const tail = section.end
-        section.end = speedChange.start
-        speedSections.splice(index + 1, 0, this._createSpeedSection(speedChange.start, speedChange.end, speedChange.speed))
-        speedSections.splice(index + 2, 0, this._createSpeedSection(speedChange.end, tail, 1))
-        return
-      }
+      // 情况2 左边界不够，右边界也不够
+      const tail = section.end
+      section.end = speedChange.start
+      speedSections.splice(index + 1, 0, this._createSpeedSection(speedChange.start, speedChange.end, speedChange.speed))
+      speedSections.splice(index + 2, 0, this._createSpeedSection(speedChange.end, tail, 1))
+      return
     }
   }
 }

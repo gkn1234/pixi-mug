@@ -70,7 +70,7 @@ export default class Tap {
     // 是否超出判定时间
     if (time - this.time > this.controller.missTime) {
       // 移除按键
-      this.controller.removeNote(this)
+      this.removeFromStage()
     }
   }
   
@@ -78,9 +78,27 @@ export default class Tap {
   setJudge (level, offset) {
     // 暂时保存判定信息
     this.level = level
-    this.offset = offset
+    this.timeOffset = offset
     
     // 通知控制器对按键成功判定进行处理
     this.controller.judgeNote(this)
+  }
+  
+  // 添加一个按键
+  addToStage () {
+    const container = this.controller.container
+    container.addChild(this.sprite)
+    this.controller.add(this)
+  }
+  
+  // 移除一个按键
+  removeFromStage () {
+    // 先判断并处理按键MISS的情况
+    this.controller.judgeMiss(this)
+    
+    const container = this.controller.container
+    this.controller.children.delete(this)
+    container.removeChild(this.sprite)
+    this.controller = null
   }
 }

@@ -247,7 +247,7 @@ export default class NoteController {
       // 将当前时间的按键加入版面
       const noteObj = this.notePool[note.type].get()
       noteObj.init(note, this)
-      this.addNote(noteObj)
+      noteObj.addToStage()
     })
     
     // 获取变速参数
@@ -265,12 +265,6 @@ export default class NoteController {
     this.catcher.judge()
   }
   
-  // 添加一个按键
-  addNote (note) {
-    this.container.addChild(note.sprite)
-    this.children.add(note)
-  }
-  
   // 判定了一个按键
   judgeNote (note) {
     // 删除按键
@@ -282,11 +276,11 @@ export default class NoteController {
     this.ui.judge.trigger(note.level, this.scene)
     // 结算连击
     this.ui.combo.trigger(this.scene)
-    console.log('判定', note.pos, note.level, note.offset, this.curTime)
+    console.log('判定', note.pos, note.level, note.timeOffset, this.curTime)
   }
   
-  // 移除一个按键
-  removeNote (note) {
+  // miss判定
+  judgeMiss (note) {
     // 判断按键是否miss
     const level = note.hasOwnProperty('level') && note.level >= 0 ? note.level : -1
     if (level < 0) {
@@ -294,11 +288,8 @@ export default class NoteController {
       this.ui.combo.miss()
       console.log('miss')
     }
-    
-    this.children.delete(note)
-    this.container.removeChild(note.sprite)
-    note.controller = null
   }
+ 
   // 播放按键击中特效
   tapAnimate (level, x) {
     if (level < 0) {
