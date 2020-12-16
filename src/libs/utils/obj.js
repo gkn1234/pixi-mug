@@ -63,7 +63,7 @@ const objUtils = {
   // 用原型链判断对象
   isObjectIns (obj) {
     return obj instanceof Object
-  }
+  },
   
   // 通过JSON实现的对象深度拷贝，但只能拷贝对象的属性
   jsonClone (obj) {

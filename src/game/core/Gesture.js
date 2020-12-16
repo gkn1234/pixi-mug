@@ -136,8 +136,10 @@ export default class Gesture {
         res = this.judgeSlide(note)
         break
       case NoteUtils.NOTE_TYPES[2]:
+        res = this.judgeHold(note)
         break
       case NoteUtils.NOTE_TYPES[3]:
+        res = this.judgeSwipe(note)
         break
     }
     
@@ -196,6 +198,37 @@ export default class Gesture {
     }
     
     return level
+  }
+  
+  judgeHold (note) {
+    if (!this.isValidNotePos(note)) {
+      return -1
+    }
+    
+    // Hold类型的判定，只存在完美判定，且可以接受除了UP以外的任何手势
+    // 这样做的目的是面条中断时，依然可以半途接上
+    const timeOffset = Math.floor(this.getJudgeTime() - note.time)
+    let level = this.getJudgeLevel(timeOffset)
+    if (timeOffset >= 0 && level >= 0) {
+      // 对于迟判，只要尚未脱离判定区，都转换为完美判定
+      level = 0
+    }
+    
+    // 只接受完美判定，可以接受除了UP以外的任何手势
+    if (level === 0 && this.state !== Gesture.STATE.up) {
+      // 如果第一次交给了滑键，则也不能再判定单键
+      this.tapEnabled = false
+      // 解放手势，允许判定Tap以外的其他类型按键被down以外的手势判定
+      this.othersEnabled = true
+      // 判定成功
+      note.setJudge(level, timeOffset)
+    }
+    
+    return level
+  }
+  
+  judgeSwipe (note) {
+    return -1
   }
   
   // 更新手势状态，一般在判定judge完成后调用

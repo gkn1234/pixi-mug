@@ -8,7 +8,7 @@ export default class MapItem {
   constructor (data, speedChanges) {
     // 把按键参数和全局变速信息先保存下来
     this._data = data
-    this._data.globalSpeedChanges = speedChanges
+    this._speedChanges = speedChanges
     
     this._init()
   }
@@ -46,6 +46,7 @@ export default class MapItem {
     this.time = this._data.time
     // 获取持续时间
     this.duration = utils.obj.isValidNum(this._data.duration) && this._data.duration > 0 ? this._data.duration : 0
+    // 获取滑动方向
     // 先将输入数据拷贝给对象
     Object.assign(this, this._data)
     
@@ -156,9 +157,20 @@ export default class MapItem {
       this.splitTexture = sheet.textures[this.splitTextureName]
     }
     
+    if (noteUnique.hasOwnProperty('arrowSrc')) {
+      // Swipe专属，滑键方向箭头资源
+      const arrowSrc = noteUnique.arrowSrc
+      this.arrowTextureName = arrowSrc[this.style]
+      this.arrowTexture = sheet.textures[this.arrowTextureName]
+    }
+    
     if (noteUnique.hasOwnProperty('height')) {
       // 对Tap、Swipe、Slide来说非常重要的高度
       this.height = noteUnique.height
+    }
+    if (noteUnique.hasOwnProperty('arrowHeight')) {
+      // Swipe箭头指示标识的高度
+      this.arrowHeight = noteUnique.arrowHeight
     }
   }
   
@@ -168,7 +180,7 @@ export default class MapItem {
     const { tNoteMove, vStandard } = NoteUtils.getMoveData()
     const { effHeight } = NoteUtils.getValidSize()
     const { timeBeforeStart } = NoteUtils.getDelayData()
-    const speedChanges = this._data.globalSpeedChanges
+    const speedChanges = this._speedChanges
     // 初始化变速区间，构建一个从游戏开始到按键落下的时间序列
     const startTime = timeBeforeStart * (-1)
     const endTime = this.time + this.duration
@@ -199,7 +211,7 @@ export default class MapItem {
       if (s + v * t >= effHeight) {
         // 距离超限，说明下落点就在这一段，按键可以从顶点下落
         const tLeft = (effHeight - s) / v
-        this.start = section.end - tLeft
+        this.start = i === startIndex ? this.time - tLeft : section.end - tLeft
         this.y = NoteUtils.raw2EffY(0)
         break
       }

@@ -30,7 +30,7 @@ export default class Tap {
   
   // 检查options和controller是否合理
   _checkInit () {
-    if (this._options.constructor.name !== 'MapItem') {
+    if (!utils.obj.isObject(this._options)) {
       throw new Error('Invalid key options!')
     }
     if (this.controller.constructor.name !== 'NoteController') {
@@ -60,10 +60,11 @@ export default class Tap {
     const v = speedChange * vStandard
     const s = v * delta
     this.sprite.y = this.sprite.y + s
+    // console.log(this.sprite.y)
     
     // 落到判定线
     if (this.sprite.y >= 0 && !this.daoda) {
-      console.log('到达', time, this.sprite.y, this.sprite.x)
+      console.log('到达', this.type, time, this.sprite.y, this.sprite.x)
       this.daoda = true
     }
     
@@ -88,7 +89,7 @@ export default class Tap {
   addToStage () {
     const container = this.controller.container
     container.addChild(this.sprite)
-    this.controller.add(this)
+    this.controller.children.add(this)
   }
   
   // 移除一个按键

@@ -137,8 +137,8 @@ export default class NoteUtils {
     
     const gameConfig = Game.config.game
     const setting = gameConfig.noteUnique[type]
-    if (!setting) {
-      return null
+    if (!utils.obj.isObjectType(setting)) {
+      throw new Error('Every note unique config must be an object!')
     }
     NoteUtils.noteUnique[type] = setting
     return NoteUtils.noteUnique[type]

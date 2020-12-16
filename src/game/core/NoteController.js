@@ -31,7 +31,8 @@ export default class NoteController {
     Sprite: Sprite,
     Tap: Tap,
     Slide: Slide,
-    Hold: Hold
+    Hold: Hold,
+    HoldItem: Hold.HoldItem
   }
   
   _init () {
@@ -142,7 +143,7 @@ export default class NoteController {
     // 长按保持时间，我们希望能够做多包容8分音符，所以这里传参为7分音符
     this.limitTime = this.getNoteDuration(7)
     // 按键miss时间
-    this.missTime = gameConfig.judgeTime[gameConfig.judgeTime.length - 1]
+    this.missTime = this.getJudgeTime(-1)
   }
   
   // 初始化谱面
@@ -168,8 +169,6 @@ export default class NoteController {
     this.startDelay = startDelay
     // 当前待判定的按键
     this.children = new Set()
-    // 当前已经判定的按键
-    this.judgedChildren = new Set()
     // 谱面指针设置为开头
     this.map.begin()
     
@@ -209,10 +208,6 @@ export default class NoteController {
   
   // 游戏重开
   restart () {
-    // 清空屏幕上的精灵
-    this.judgedChildren.forEach((child) => {
-      this.removeNote(child)
-    })
     this.children.forEach((child) => {
       this.removeNote(child)
     })
@@ -252,10 +247,6 @@ export default class NoteController {
     
     // 获取变速参数
     const speedChange = this.map.getCurrentSpeed()
-    this.judgedChildren.forEach((child) => {
-      // 先更新已判定区的按键
-      child.onUpdate(delta, speedChange)
-    })
     this.children.forEach((child) => {
       // 再更新待判定的按键
       child.onUpdate(delta, speedChange)
@@ -268,7 +259,7 @@ export default class NoteController {
   // 判定了一个按键
   judgeNote (note) {
     // 删除按键
-    this.removeNote(note)
+    note.removeFromStage()
     
     // 播放打击特效
     this.tapAnimate(note.level, note.x)
@@ -282,10 +273,7 @@ export default class NoteController {
   // miss判定
   judgeMiss (note) {
     // 判断按键是否miss
-    const level = note.hasOwnProperty('l
-    
-    
-    evel') && note.level >= 0 ? note.level : -1
+    const level = note.hasOwnProperty('level') && note.level >= 0 ? note.level : -1
     if (level < 0) {
       this.ui.judge.trigger(level, this.scene)
       this.ui.combo.miss()
@@ -326,5 +314,17 @@ export default class NoteController {
     const baseDuration = 60 * 1000 / this.bpm
     const ratio = 4 / divide
     return baseDuration * ratio
+  }
+  
+  // 获取判定时间 -1也可以代表miss
+  getJudgeTime (level = 0) {
+    const gameConfig = Game.config.game
+    if (!utils.obj.isArray(gameConfig.judgeTime) || level < -1 || level >= gameConfig.judgeTime.length) {
+      throw new Error('Invalid judge time config!')
+    }
+    if (level === -1) {
+      level = gameConfig.judgeTime.length - 1
+    }
+    return gameConfig.judgeTime[level]
   }
 }

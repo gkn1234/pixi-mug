@@ -92,6 +92,11 @@ export default class MapData {
       }
       this.notes.push(note)
     }
+    
+    // 最后按照时间升序进行排序
+    this.notes.sort((a, b) => {
+      return a.start - b.start
+    })
   }
   
   // 将谱面指针与变速指针均置为开头

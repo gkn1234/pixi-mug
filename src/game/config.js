@@ -54,10 +54,13 @@ export default {
       Hold: {
         src: ['hold_0.png', 'hold_1.png', 'hold_2.png'],
         splitSrc: ['hold_split_0.png', 'hold_split_1.png', 'hold_split_2.png'],
-        height: 15
+        height: 20
       },
       Swipe: {
-        src: []
+        src: ['tap_0.png', 'tap_1.png', 'tap_2.png'],
+        arrowSrc: ['arrow_0.png', 'arrow_1.png', 'arrow_2.png'],
+        height: 80,
+        arrowHeight: 120
       }
     },
     
@@ -77,7 +80,7 @@ export default {
     // 键位从顶部到判定线用时(1速)，速度每加1，用时减去 3/28
     noteMoveTime: 2500,
     // 落键速度(可以设置1/2/3/4/5/6/7/8速)
-    noteSpeed: 6,
+    noteSpeed: 1,
     
     // 延迟参数
     // 歌曲播放前的空白时间，单位ms，即使不设置，也会强制空出3秒

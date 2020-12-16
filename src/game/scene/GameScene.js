@@ -19,7 +19,7 @@ export default class GameScene extends Scene {
     // 读取谱面
     this.noteData = {
       notes: [
-        { time: 825, type: 'Tap', key: 4, pos: 0, offset: 0 },
+        /*{ time: 825, type: 'Tap', key: 4, pos: 0, offset: 0 },
         { time: 825, type: 'Tap', key: 4, pos: 3, offset: 0 },
         { time: 1180, type: 'Tap', key: 4, pos: 1, offset: 0 },
         { time: 1357, type: 'Tap', key: 4, pos: 2, offset: 0 },
@@ -49,8 +49,12 @@ export default class GameScene extends Scene {
         { time: 4800, type: 'Slide', key: 8, pos: 4, offset: 0 },
         { time: 4900, type: 'Slide', key: 8, pos: 5, offset: 0 },
         { time: 5000, type: 'Slide', key: 8, pos: 6, offset: 0 },
-        { time: 5100, type: 'Slide', key: 8, pos: 7, offset: 0 },
-        { time: 3000, type: 'Hold', duration: 1000, key: 4, pos: 0, offset: 0, end: { pos: 1, offset: 2 } },
+        { time: 5100, type: 'Slide', key: 8, pos: 7, offset: 0 },*/
+       //  { time: 825, type: 'Hold', duration: 1000, key: 4, pos: 3, offset: 0, end: { pos: 2, offset: 0 } },
+        /*{ time: 825, type: 'Hold', duration: 1000, key: 8, pos: 0, offset: 0, end: { pos: 1, offset: 0 } },
+        { time: 1825, type: 'Hold', duration: 1000, key: 8, pos: 1, offset: 0, end: { pos: 0, offset: 0 } },
+        { time: 2825, type: 'Hold', duration: 0, key: 8, pos: 0, offset: 0, end: { pos: 0, offset: 0 } },*/
+        { time: 825, type: 'Swipe', key: 4, pos: 0, offset: 0, direction: 0 },
         /*{ time: 3000, type: 'Tap', key: 4, pos: 1, offset: 0 },
         { time: 3100, type: 'Tap', key: 4, pos: 1, offset: 0 },
         { time: 3200, type: 'Tap', key: 4, pos: 1, offset: 0 },
@@ -127,7 +131,7 @@ export default class GameScene extends Scene {
     this.controller = new NoteController(this.noteData, this)
     console.log(this.controller)
      
-    const s = new Sprite(Game.sheet.textures['hold_0.png'])
+    /*const s = new Sprite(Game.sheet.textures['hold_0.png'])
     s.anchor.set(0.5, 1)
     s.width = 200
     s.height = 1000
@@ -140,7 +144,7 @@ export default class GameScene extends Scene {
     n.width = 200
     n.height = 1000
     n.position.set(960, 1080)
-    this.addChild(n)
+    this.addChild(n)*/
   }
   
   onOpen () {

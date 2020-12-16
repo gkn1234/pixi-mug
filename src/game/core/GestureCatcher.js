@@ -109,6 +109,11 @@ export default class GestureCatcher {
     return this.controller.missTime ? this.controller.missTime : 100
   }
   
+  // 获取其他判定时间
+  getJudgeTime (level) {
+    return this.controller.getJudgeTime(level)
+  }
+  
   // 绑定回调函数
   setCallback (key, callback) {
     this.eventsCallback[key] = callback
